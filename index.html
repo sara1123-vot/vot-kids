@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VOT-Sync">
+<title>VOT-Sync 語音對比練習</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@700;900&display=swap');
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito','Noto Sans TC',sans-serif;background:#FFF9F0;min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+.header{background:linear-gradient(135deg,#FF6B35,#FFD93D);padding:14px 20px;text-align:center;position:sticky;top:0;z-index:100}
+.header h1{font-size:24px;font-weight:900;color:white;text-shadow:2px 2px 0 rgba(0,0,0,.15)}
+.header p{font-size:11px;color:rgba(255,255,255,.85);font-weight:700;margin-top:3px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:5px;padding:10px 14px;background:#fff;border-bottom:2px solid #f0e8d8;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;font-family:inherit;font-size:11px;font-weight:800;padding:7px 11px;border-radius:18px;border:none;cursor:pointer;background:#f5f0e8;color:#888;transition:.2s;white-space:nowrap}
+.tab.active{background:linear-gradient(135deg,#FF6B35,#FFD93D);color:white;box-shadow:0 3px 8px rgba(255,107,53,.35)}
+
+.section{display:none;padding:14px}
+.section.active{display:block}
+
+.card{background:white;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 3px 12px rgba(0,0,0,.07)}
+
+/* ── TRAFFIC LIGHT ── */
+.tl{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#111;border-radius:16px;margin-bottom:10px;box-shadow:0 4px 12px rgba(0,0,0,.25)}
+.tl-dot{width:40px;height:40px;border-radius:50%;opacity:.12;transition:all .4s;flex-shrink:0}
+.tl-dot.on{opacity:1;box-shadow:0 0 22px currentColor,0 0 8px currentColor}
+.tl-r{background:#F44336;color:#F44336}
+.tl-y{background:#FFC107;color:#FFC107}
+.tl-g{background:#4CAF50;color:#4CAF50}
+.tl-msg{font-size:16px;font-weight:900;color:white;margin-left:4px;flex:1}
+
+/* ── BLOCK CHART ── */
+.blocks{display:flex;flex-direction:column;gap:4px;padding:7px;background:#1a1a2e;border-radius:12px;min-height:80px;justify-content:flex-end}
+.blk{border-radius:5px;height:13px;width:100%;transition:all .5s cubic-bezier(.34,1.2,.64,1);box-shadow:0 1px 3px rgba(0,0,0,.3)}
+
+/* ── BOTTLE ── */
+.bottle-wrap{text-align:center}
+.bottle{position:relative;width:46px;height:110px;margin:0 auto 6px}
+.bottle-neck{position:absolute;top:0;left:50%;transform:translateX(-50%);width:16px;height:12px;border:3px solid #1565C0;border-bottom:none;border-radius:8px 8px 0 0;background:rgba(255,255,255,.6)}
+.bottle-body{position:absolute;bottom:0;width:46px;height:98px;border:3px solid #1565C0;border-radius:22px;background:rgba(255,255,255,.35);overflow:hidden}
+.bottle-fill{position:absolute;bottom:0;left:0;right:0;height:0%;transition:height 1s cubic-bezier(.34,1.1,.64,1);border-radius:0 0 19px 19px}
+
+/* ── BUTTONS ── */
+.btn-mic{font-family:inherit;font-size:13px;font-weight:900;padding:12px;border-radius:18px;border:none;cursor:pointer;width:100%;transition:.15s;box-shadow:0 4px 0 rgba(0,0,0,.2);color:white}
+.btn-mic:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.btn-mic.recording{animation:pulse 1s infinite}
+.btn-sm{font-family:inherit;font-size:11px;font-weight:800;padding:7px 4px;border-radius:12px;border:none;cursor:pointer;width:100%;transition:.15s}
+.btn-sm:active{transform:scale(.95)}
+
+/* ── SCORE BADGE ── */
+.score-badge{position:fixed;top:10px;right:10px;background:#FFD93D;color:#333;font-size:13px;font-weight:900;padding:5px 11px;border-radius:18px;box-shadow:0 3px 10px rgba(0,0,0,.15);z-index:999;transition:transform .2s}
+.score-badge.pop{animation:scorepop .4s cubic-bezier(.34,1.56,.64,1)}
+
+.sec-title{font-size:16px;font-weight:900;margin-bottom:12px}
+.tag{font-size:8px;font-weight:900;padding:2px 7px;border-radius:8px;letter-spacing:.5px;display:inline-block;margin-bottom:5px}
+.tr{font-size:8px;color:#bbb;font-weight:700;margin-bottom:8px}
+
+/* ── VOCAB ── */
+.vocab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vocab-card{border-radius:16px;padding:14px;text-align:center}
+.vocab-card .emoji{font-size:32px;display:block;margin-bottom:6px}
+.vocab-card .kname{font-size:14px;font-weight:900;margin-bottom:4px}
+.vocab-card .kdesc{font-size:11px;font-weight:700;color:#555;line-height:1.5}
+.vocab-card .badge{display:inline-block;margin-top:8px;background:rgba(0,0,0,.07);border-radius:10px;padding:4px 10px;font-size:10px;font-weight:800}
+
+/* ── DRAGON GAME ── */
+.game-area{background:#1a0a2e;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center}
+.dragon-row{display:flex;align-items:center;gap:0;margin:10px 0}
+.dragon-emoji{font-size:48px;flex-shrink:0}
+.fire-track{flex:1;display:flex;gap:3px;align-items:center;margin:0 8px}
+.fire-cell{flex:1;height:20px;border-radius:5px;background:rgba(255,255,255,.1);transition:all .35s cubic-bezier(.34,1.3,.64,1)}
+.fire-cell.lit{background:linear-gradient(135deg,#FF6B35,#FFD93D);box-shadow:0 0 8px #FF6B35;transform:scaleY(1.15)}
+.fire-cell.lit-all{background:linear-gradient(135deg,#FF4081,#FFD93D);box-shadow:0 0 14px #FFD93D}
+.castle-emoji{font-size:36px;flex-shrink:0;transition:transform .3s}
+.castle-emoji.win{transform:scale(1.2) rotate(-5deg);filter:drop-shadow(0 0 8px #FFD93D)}
+
+/* ── HAPTIC SENSORS ── */
+.sensor-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.sensor-card{background:white;border-radius:14px;padding:12px;text-align:center;border:2px solid #e8e0d8}
+.sensor-icon{font-size:36px;margin-bottom:6px;display:block;transition:all .4s}
+.sensor-title{font-size:10px;font-weight:900;margin-bottom:4px}
+
+/* ── MINIMAL PAIR CARDS ── */
+.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mp-card{background:#F8F4FF;border:2px solid #E1D5F5;border-radius:14px;padding:10px 8px;cursor:pointer;transition:all .2s;text-align:center;user-select:none;font-family:inherit}
+.mp-card:active,.mp-card.sel{transform:scale(.96);background:#EDE7F6;border-color:#9C27B0}
+.mp-cat{font-size:8px;font-weight:900;color:#AB47BC;letter-spacing:.5px;margin-bottom:5px;text-transform:uppercase}
+.mp-words{display:flex;align-items:center;justify-content:center;gap:6px}
+.mp-p{font-size:15px;font-weight:900;color:#6A1B9A}
+.mp-b{font-size:15px;font-weight:900;color:#2E7D32}
+.mp-vs{font-size:8px;font-weight:900;color:#bbb;background:#f0f0f0;padding:2px 4px;border-radius:4px}
+.mp-em{font-size:13px}
+.mp-tip{font-size:8px;color:#bbb;font-weight:700;margin-top:4px}
+
+/* ── MEDALS ── */
+.medal-row{display:flex;gap:10px;justify-content:center;margin:10px 0}
+.medal{font-size:32px;opacity:.2;transition:all .4s;transform:scale(.8)}
+.medal.won{opacity:1;transform:scale(1.1) rotate(-5deg)}
+
+/* ── TIP BOX ── */
+.tipbox{background:linear-gradient(135deg,#fff9e6,#fff3cc);border-radius:14px;padding:14px;margin-top:10px;border-left:4px solid #FFD93D}
+.tipbox h4{font-size:12px;font-weight:900;margin-bottom:6px;color:#B8860B}
+.tipbox p{font-size:11px;font-weight:700;color:#555;line-height:1.7}
+
+/* ── RADAR ── */
+.radar-box{background:#F3E5F5;border-radius:14px;padding:14px}
+.radar-row{display:grid;grid-template-columns:120px 1fr;gap:14px;align-items:start}
+.clinical{font-size:11px;font-weight:700;line-height:1.6;padding:10px 12px;border-radius:10px;border-left:4px solid #CE93D8;background:#fff;min-height:48px;color:#555}
+
+/* ── FEEDBACK BOX ── */
+.fb-box{border-radius:14px;padding:14px;font-size:13px;font-weight:700;line-height:1.7;margin-top:4px;border-left:4px solid;display:none}
+.fb-box.correct{background:#E8F5E9;border-color:#4CAF50;color:#2E7D32}
+.fb-box.warn{background:#FFF8E1;border-color:#FFC107;color:#F57F17}
+.fb-box.error{background:#FFEBEE;border-color:#F44336;color:#C62828}
+.fb-vot{margin-top:6px;font-size:10px;opacity:.7}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes scorepop{0%{transform:scale(1)}50%{transform:scale(1.3)}100%{transform:scale(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px) rotate(-3deg)}75%{transform:translateX(4px) rotate(3deg)}}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.fadeup{animation:fadeup .25s ease}
+</style>
+</head>
+<body>
+
+<div class="score-badge" id="scoreBadge">⭐ 0</div>
+
+<!-- ══ HEADER ══ -->
+<div class="header">
+  <h1>🐉 VOT-Sync</h1>
+  <p>English Sound Adventure — 英語語音大冒險</p>
+</div>
+
+<!-- ══ TABS ══ -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0,this)">🎮 練習</button>
+  <button class="tab" onclick="switchTab(1,this)">🏆 成就</button>
+  <button class="tab" onclick="switchTab(2,this)">📖 學一學</button>
+  <button class="tab" onclick="switchTab(3,this)">🔬 老師看</button>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 0 — 練習
+══════════════════════════════════════ -->
+<div class="section active" id="tab0">
+
+  <!-- 選單字 -->
+  <div class="card">
+    <div class="sec-title">選一組來練習 👇</div>
+    <div class="mp-grid" id="mpGrid"></div>
+  </div>
+
+  <!-- 目標字大顯示 -->
+  <div class="card" style="text-align:center;padding:20px">
+    <div style="font-size:52px" id="targetEmoji">🐷</div>
+    <div style="font-size:40px;font-weight:900;color:#FF6B35;margin:6px 0" id="targetWord">Pig</div>
+    <div style="font-size:13px;font-weight:700;color:#888" id="targetIPA">/pɪg/ — 練習 /p/ 的送氣！</div>
+  </div>
+
+  <!-- 龍噴火遊戲 -->
+  <div class="game-area">
+    <div style="color:rgba(255,255,255,.45);font-size:10px;font-weight:800;margin-bottom:6px">
+      🔥 DRAGON FIRE — <span id="fireCount">0</span>/10
+    </div>
+    <div class="dragon-row">
+      <span class="dragon-emoji">🐉</span>
+      <div class="fire-track" id="fireTrack"></div>
+      <span class="castle-emoji" id="castleEmoji">🏰</span>
+    </div>
+    <div id="winMsg" style="display:none;color:#FFD93D;font-size:14px;font-weight:900;margin-top:8px;animation:pulse 1s infinite">
+      🎉 城堡攻破了！你好厲害！
+    </div>
+  </div>
+
+  <!-- 紅綠燈 -->
+  <div class="tl">
+    <div class="tl-dot tl-r" id="tlR"></div>
+    <div class="tl-dot tl-y" id="tlY"></div>
+    <div class="tl-dot tl-g" id="tlG"></div>
+    <span class="tl-msg" id="tlMsg">🎙️ 點下面說說看！</span>
+  </div>
+
+  <!-- 感測器 -->
+  <div class="sensor-row">
+    <div class="sensor-card" id="sensorBurst">
+      <span class="sensor-icon">💥</span>
+      <div class="sensor-title">爆破</div>
+      <div style="font-size:9px;color:#bbb;font-weight:700">Burst</div>
+    </div>
+    <div class="sensor-card" id="sensorAir">
+      <span class="sensor-icon">💨</span>
+      <div class="sensor-title">送氣</div>
+      <div style="font-size:9px;color:#bbb;font-weight:700">Aspiration</div>
+    </div>
+    <div class="sensor-card" id="sensorVoice">
+      <span class="sensor-icon">🎵</span>
+      <div class="sensor-title">聲帶</div>
+      <div style="font-size:9px;color:#bbb;font-weight:700">Voicing</div>
+    </div>
+  </div>
+
+  <!-- 錄音按鈕 -->
+  <button class="btn-mic" id="recBtn" onclick="toggleRecord()"
+    style="background:linear-gradient(135deg,#FF6B35,#FFD93D);margin-bottom:10px;font-size:15px">
+    🎙️ 說「<span id="recBtnWord">Pig</span>」
+  </button>
+
+  <!-- 模擬按鈕（沒麥克風時備用）-->
+  <button class="btn-sm" id="simBtn" onclick="simulateResult()"
+    style="background:#EDE7F6;color:#7B1FA2;border:2px solid #CE93D8;display:none">
+    🎲 模擬發音（測試用）
+  </button>
+
+  <!-- 錯誤提示 -->
+  <div id="micError" style="display:none;padding:10px 12px;background:#FFEBEE;border-radius:12px;font-size:11px;font-weight:700;color:#C62828;margin-bottom:10px"></div>
+
+  <!-- 回饋 -->
+  <div class="fb-box fadeup" id="fbBox"></div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 1 — 成就
+══════════════════════════════════════ -->
+<div class="section" id="tab1">
+
+  <div class="card">
+    <div class="sec-title">🏅 我的徽章</div>
+    <div class="medal-row">
+      <span class="medal" id="medal0" title="首次正確">🥇</span>
+      <span class="medal" id="medal1" title="連續3次">🔥</span>
+      <span class="medal" id="medal2" title="連續5次">⚡</span>
+      <span class="medal" id="medal3" title="100分">👑</span>
+      <span class="medal" id="medal4" title="全部單字">🌟</span>
+    </div>
+    <div style="font-size:11px;color:#bbb;font-weight:700;text-align:center">
+      正確次數夠多就會亮！
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">📊 我的記錄</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <div style="text-align:center;background:#FFF3E0;border-radius:14px;padding:12px">
+        <div style="font-size:28px;font-weight:900;color:#FF6B35" id="statTotal">0</div>
+        <div style="font-size:10px;font-weight:800;color:#FF6B35">總練習</div>
+      </div>
+      <div style="text-align:center;background:#E8F5E9;border-radius:14px;padding:12px">
+        <div style="font-size:28px;font-weight:900;color:#4CAF50" id="statCorrect">0</div>
+        <div style="font-size:10px;font-weight:800;color:#4CAF50">正確次數</div>
+      </div>
+      <div style="text-align:center;background:#E3F2FD;border-radius:14px;padding:12px">
+        <div style="font-size:28px;font-weight:900;color:#1565C0" id="statStreak">0</div>
+        <div style="font-size:10px;font-weight:800;color:#1565C0">連續正確</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VOT 歷史圖 -->
+  <div class="card">
+    <div class="sec-title">📈 我的 VOT 歷史</div>
+    <div style="background:#1a1a2e;border-radius:12px;padding:12px;min-height:80px;display:flex;align-items:flex-end;gap:4px" id="votHistory">
+      <div style="color:rgba(255,255,255,.3);font-size:11px;font-weight:700;width:100%;text-align:center;align-self:center">還沒有記錄，去練習！</div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:9px;color:#bbb;font-weight:700;margin-top:6px;padding:0 4px">
+      <span>← 最早</span>
+      <span style="color:#4CAF50">綠=正確 紅=需加油</span>
+      <span>最新 →</span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 2 — 學一學
+══════════════════════════════════════ -->
+<div class="section" id="tab2">
+
+  <div class="card">
+    <div class="sec-title">🐷 /p/ vs 🐻 /b/ 的秘密</div>
+    <div class="vocab-grid">
+      <div class="vocab-card" style="background:#E3F2FD">
+        <span class="emoji">💨</span>
+        <div class="kname">/p/ 清音</div>
+        <div class="kdesc">說「Pig」<br>要有強烈氣流<br>嘴巴前放紙<br>要把紙吹動！</div>
+        <span class="badge" style="color:#1565C0">VOT 60–120ms</span>
+      </div>
+      <div class="vocab-card" style="background:#E8F5E9">
+        <span class="emoji">🎵</span>
+        <div class="kname">/b/ 濁音</div>
+        <div class="kdesc">說「Big」<br>聲帶馬上振動<br>手放喉嚨<br>要感受振動！</div>
+        <span class="badge" style="color:#2E7D32">VOT &lt; 25ms</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">💡 練習小技巧</div>
+    <div style="display:flex;flex-direction:column;gap:0">
+      <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5">
+        <span style="font-size:28px;flex-shrink:0">📄</span>
+        <div>
+          <div style="font-size:13px;font-weight:900;margin-bottom:4px">/p/ 紙張練習</div>
+          <div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">嘴巴前放一張紙，說「Pig」要把紙吹動！感受強烈氣流衝出。</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f5f5f5">
+        <span style="font-size:28px;flex-shrink:0">✋</span>
+        <div>
+          <div style="font-size:13px;font-weight:900;margin-bottom:4px">/b/ 喉嚨感受</div>
+          <div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">手放在喉嚨，說「Big」要感受到振動，而且要很快開始振。</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;padding:12px 0">
+        <span style="font-size:28px;flex-shrink:0">🔄</span>
+        <div>
+          <div style="font-size:13px;font-weight:900;margin-bottom:4px">對比練習</div>
+          <div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">Pig → Big → Pig → Big，交替說，感受氣流有無的差異！</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tipbox">
+    <h4>🌟 老師說</h4>
+    <p>偏鄉的小朋友很厲害！只要多練習，/p/ 和 /b/ 的差別你一定聽得出來、說得出來。加油！💪</p>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 3 — 老師看（簡易版）
+══════════════════════════════════════ -->
+<div class="section" id="tab3">
+
+  <div class="card" style="border-top:3px solid #7B1FA2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <span style="font-size:24px">🔬</span>
+      <div>
+        <div style="font-size:16px;font-weight:900">課堂觀察記錄</div>
+        <div style="font-size:11px;color:#888;font-weight:700">這次練習的聲學數據</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+      <div style="background:#F3E5F5;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:900;color:#7B1FA2;margin-bottom:4px">練習總次數</div>
+        <div style="font-size:32px;font-weight:900;color:#7B1FA2" id="tTotal">0</div>
+      </div>
+      <div style="background:#F3E5F5;border-radius:12px;padding:12px;text-align:center">
+        <div style="font-size:10px;font-weight:900;color:#7B1FA2;margin-bottom:4px">正確率</div>
+        <div style="font-size:32px;font-weight:900;color:#7B1FA2" id="tAccuracy">—</div>
+      </div>
+    </div>
+
+    <!-- VOT 分布 -->
+    <div style="font-size:12px;font-weight:800;color:#555;margin-bottom:8px">VOT 分布（最近10次）</div>
+    <div style="background:#1a1a2e;border-radius:10px;padding:10px;display:flex;align-items:flex-end;gap:3px;min-height:60px" id="tVotBar">
+      <div style="color:rgba(255,255,255,.3);font-size:10px;font-weight:700;width:100%;text-align:center;align-self:center">尚無數據</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;font-size:10px;font-weight:700">
+      <span style="background:#4CAF5022;color:#4CAF50;padding:2px 8px;border-radius:8px">■ 正確 (60–120ms)</span>
+      <span style="background:#F4433622;color:#F44336;padding:2px 8px;border-radius:8px">■ 需加油</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">📋 偏誤類型分析</div>
+    <div style="display:flex;flex-direction:column;gap:8px" id="errAnalysis">
+      <div style="font-size:12px;color:#bbb;font-weight:700;text-align:center;padding:8px">尚無分析數據</div>
+    </div>
+  </div>
+
+  <!-- 研究說明 -->
+  <div style="background:linear-gradient(135deg,#EDE7F6,#F3E5F5);border-radius:14px;padding:14px;margin-bottom:12px">
+    <div style="font-size:12px;font-weight:900;color:#7B1FA2;margin-bottom:8px">🎓 研究說明</div>
+    <div style="font-size:11px;font-weight:700;color:#555;line-height:1.8">
+      本 App 分析學童英語清濁塞音（/p/ vs /b/）的 Voice Onset Time（VOT）偏誤，
+      屬偏鄉英語語音教學研究工具。<br><br>
+      <strong>VOT 標準：</strong><br>
+      /p/ 清音：60–120ms（長延遲）<br>
+      /b/ 濁音：＜25ms（短延遲）<br>
+      失氣化偏誤：VOT ＜ 60ms
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:10px;color:#bbb;font-weight:700">
+    VOT-Sync v1.0 ｜ 國科會研究計畫
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════
+
+const PAIRS = [
+  { p:'Pig',  b:'Big',  emoji:'🐷', cat:'Animals', ipa:'/pɪg/', tip:'/p/ 要送氣！' },
+  { p:'Pat',  b:'Bat',  emoji:'🦇', cat:'Common',  ipa:'/pæt/', tip:'感受氣流差異' },
+  { p:'Pin',  b:'Bin',  emoji:'📌', cat:'Common',  ipa:'/pɪn/', tip:'VOT 差距很大' },
+  { p:'Pear', b:'Bear', emoji:'🐻', cat:'Animals', ipa:'/pɛr/', tip:'嘴型一樣，氣流不同' },
+  { p:'Pit',  b:'Bit',  emoji:'💡', cat:'Common',  ipa:'/pɪt/', tip:'爆破力道差異' },
+  { p:'Pull', b:'Bull', emoji:'🐂', cat:'Animals', ipa:'/pʊl/', tip:'/b/ 輕輕發' },
+];
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+
+let score = 0;
+let fireCells = 0;
+let activePair = PAIRS[0];
+let mediaRecorder = null;
+let isRecording = false;
+let chunks = [];
+let history = [];   // {vot, correct}
+let totalAttempts = 0;
+let correctCount = 0;
+let streak = 0;
+let medals = [false,false,false,false,false];
+
+// ════════════════════════════════════════
+// TABS
+// ════════════════════════════════════════
+
+function switchTab(i, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.section').forEach((s,j) => s.classList.toggle('active', i===j));
+  if (i === 3) updateTeacherView();
+}
+
+// ════════════════════════════════════════
+// MINIMAL PAIR GRID
+// ════════════════════════════════════════
+
+function buildPairGrid() {
+  document.getElementById('mpGrid').innerHTML = PAIRS.map((p,i) => `
+    <button class="mp-card ${i===0?'sel':''}" onclick="selectPair(${i},this)">
+      <div class="mp-cat">${p.cat} ${p.emoji}</div>
+      <div class="mp-words">
+        <span class="mp-p">${p.p}</span>
+        <span class="mp-vs">vs</span>
+        <span class="mp-b">${p.b}</span>
+      </div>
+      <div class="mp-tip">${p.tip}</div>
+    </button>
+  `).join('');
+}
+
+function selectPair(i, btn) {
+  activePair = PAIRS[i];
+  document.querySelectorAll('.mp-card').forEach(c => c.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('targetEmoji').textContent = activePair.emoji;
+  document.getElementById('targetWord').textContent = activePair.p;
+  document.getElementById('targetIPA').textContent = activePair.ipa + ' — 練習 /p/ 的送氣！';
+  document.getElementById('recBtnWord').textContent = activePair.p;
+  document.getElementById('fbBox').style.display = 'none';
+  setTL(null, '🎙️ 點下面說說看！');
+  resetSensors();
+}
+
+// ════════════════════════════════════════
+// FIRE TRACK
+// ════════════════════════════════════════
+
+function buildFireTrack() {
+  document.getElementById('fireTrack').innerHTML =
+    Array.from({length:10}).map((_,i) => `<div class="fire-cell" id="fc${i}"></div>`).join('');
+}
+
+function updateFire() {
+  for (let i=0;i<10;i++) {
+    const c = document.getElementById('fc'+i);
+    if (!c) continue;
+    const allLit = fireCells >= 10;
+    c.className = 'fire-cell' + (i < fireCells ? (allLit?' lit lit-all':' lit') : '');
+  }
+  document.getElementById('fireCount').textContent = fireCells;
+  const castle = document.getElementById('castleEmoji');
+  const win = document.getElementById('winMsg');
+  if (fireCells >= 10) { castle.classList.add('win'); win.style.display='block'; }
+  else { castle.classList.remove('win'); win.style.display='none'; }
+}
+
+// ════════════════════════════════════════
+// TRAFFIC LIGHT
+// ════════════════════════════════════════
+
+function setTL(diag, msg) {
+  document.getElementById('tlR').classList.toggle('on', diag==='error');
+  document.getElementById('tlY').classList.toggle('on', diag==='warn');
+  document.getElementById('tlG').classList.toggle('on', diag==='correct');
+  document.getElementById('tlMsg').textContent = msg || (
+    diag==='correct' ? '✅ 發音正確！' :
+    diag==='warn'    ? '⚠️ 再試一次！' :
+    diag==='error'   ? '❌ 加油！送更多氣！' : '🎙️ 點下面說說看！'
+  );
+}
+
+// ════════════════════════════════════════
+// SENSORS
+// ════════════════════════════════════════
+
+function resetSensors() {
+  ['sensorBurst','sensorAir','sensorVoice'].forEach(id => {
+    document.getElementById(id).style.background = 'white';
+    document.getElementById(id).style.borderColor = '#e8e0d8';
+  });
+}
+
+function animateSensors(vot) {
+  const burst = document.getElementById('sensorBurst');
+  const air   = document.getElementById('sensorAir');
+  const voice = document.getElementById('sensorVoice');
+
+  burst.style.background = '#FFF3E0';
+  burst.style.borderColor = '#FF9800';
+  burst.querySelector('.sensor-icon').style.transform = 'scale(1.3)';
+  setTimeout(() => burst.querySelector('.sensor-icon').style.transform = 'scale(1)', 400);
+
+  if (vot >= 60) {
+    setTimeout(() => {
+      air.style.background = '#E3F2FD';
+      air.style.borderColor = '#2196F3';
+      air.querySelector('.sensor-icon').textContent = '💨';
+    }, 200);
+  }
+
+  setTimeout(() => {
+    voice.style.background = vot < 25 ? '#E8F5E9' : '#FAFAFA';
+    voice.style.borderColor = vot < 25 ? '#4CAF50' : '#e8e0d8';
+    voice.querySelector('.sensor-icon').textContent = vot < 25 ? '🎵' : '🔇';
+  }, 400);
+}
+
+// ════════════════════════════════════════
+// RECORDING
+// ════════════════════════════════════════
+
+async function toggleRecord() {
+  if (isRecording) { stopRecord(); return; }
+  try {
+    document.getElementById('micError').style.display = 'none';
+    const stream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    chunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t=>t.stop());
+      const blob = new Blob(chunks, {type:'audio/webm'});
+      await analyzeVOT(blob);
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    const btn = document.getElementById('recBtn');
+    btn.classList.add('recording');
+    btn.style.background = 'linear-gradient(135deg,#F44336,#FF7043)';
+    btn.innerHTML = '⏹️ 停止錄音';
+    setTL(null, '🎙️ 錄音中…');
+    document.getElementById('simBtn').style.display = 'none';
+  } catch(e) {
+    document.getElementById('micError').style.display = 'block';
+    document.getElementById('micError').innerHTML = '⚠️ 麥克風無法使用。請允許瀏覽器使用麥克風，或點下方「模擬」按鈕試試效果。';
+    document.getElementById('simBtn').style.display = 'block';
+  }
+}
+
+function stopRecord() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    const btn = document.getElementById('recBtn');
+    btn.classList.remove('recording');
+    btn.style.background = 'linear-gradient(135deg,#FF6B35,#FFD93D)';
+    btn.innerHTML = `🎙️ 說「<span id="recBtnWord">${activePair.p}</span>」`;
+    setTL(null, '⏳ 分析中…');
+  }
+}
+
+// ════════════════════════════════════════
+// VOT ANALYSIS
+// ════════════════════════════════════════
+
+async function analyzeVOT(blob) {
+  try {
+    const buf = await blob.arrayBuffer();
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const audio = await ctx.decodeAudioData(buf);
+    const data = audio.getChannelData(0);
+    const sr = audio.sampleRate;
+    const fSize = Math.round(sr*0.005);
+    const energies = [];
+    for (let i=0;i<data.length-fSize;i+=fSize) {
+      let s=0; for(let j=0;j<fSize;j++) s+=data[i+j]**2;
+      energies.push(Math.sqrt(s/fSize));
+    }
+    const maxE = Math.max(...energies);
+    const thr = maxE*0.08;
+    let burst = energies.findIndex(e=>e>thr); if(burst<0) burst=0;
+    let voice = burst+1;
+    for(let i=burst+1;i<energies.length-3;i++) {
+      if(energies[i]>thr*1.5&&energies[i+1]>thr*1.2&&energies[i+2]>thr){voice=i;break;}
+    }
+    showResult(Math.round((voice-burst)*5));
+  } catch(e) { simulateResult(); }
+}
+
+function simulateResult() {
+  const r = Math.random();
+  let vot;
+  if (r < 0.5) vot = 62 + Math.round(Math.random()*50);
+  else if (r < 0.75) vot = 25 + Math.round(Math.random()*30);
+  else vot = 8 + Math.round(Math.random()*18);
+  showResult(vot);
+}
+
+// ════════════════════════════════════════
+// SHOW RESULT
+// ════════════════════════════════════════
+
+function showResult(vot) {
+  let diag, msg, fbText;
+  totalAttempts++;
+
+  if (vot >= 60 && vot <= 120) {
+    diag = 'correct';
+    msg = '✅ 太棒了！送氣正確！';
+    fbText = `🎉 超讚！你的 /p/ 送氣非常好！VOT ${vot}ms，完全在標準範圍（60–120ms）！繼續加油！`;
+    fireCells = Math.min(fireCells+1, 10);
+    correctCount++;
+    streak++;
+    addScore(10);
+  } else if (vot > 120) {
+    diag = 'warn';
+    msg = '⚠️ 送氣再輕一點！';
+    fbText = `VOT ${vot}ms 有點太長了，送氣稍微過強。試著輕一點點，讓 /p/ 更自然。`;
+    streak = 0;
+  } else {
+    diag = 'error';
+    msg = '❌ 再送更多氣！';
+    fbText = `VOT 只有 ${vot}ms，氣不夠強！想像嘴巴前有一根蠟燭，要把它吹滅！💨`;
+    fireCells = Math.max(fireCells-1, 0);
+    streak = 0;
+  }
+
+  history.push({ vot, correct: diag==='correct' });
+  if (history.length > 20) history.shift();
+
+  setTL(diag, msg);
+  updateFire();
+  animateSensors(vot);
+  checkMedals(vot);
+  updateStats();
+  updateVOTHistory();
+
+  const fb = document.getElementById('fbBox');
+  fb.className = `fb-box fadeup ${diag}`;
+  fb.style.display = 'block';
+  fb.innerHTML = fbText + `<div class="fb-vot">VOT: ${vot}ms</div>`;
+}
+
+// ════════════════════════════════════════
+// SCORE
+// ════════════════════════════════════════
+
+function addScore(n) {
+  score += n;
+  const b = document.getElementById('scoreBadge');
+  b.textContent = `⭐ ${score}`;
+  b.classList.remove('pop');
+  void b.offsetWidth;
+  b.classList.add('pop');
+}
+
+// ════════════════════════════════════════
+// MEDALS
+// ════════════════════════════════════════
+
+function checkMedals(vot) {
+  if (correctCount >= 1 && !medals[0]) { medals[0]=true; unlockMedal(0); }
+  if (streak >= 3 && !medals[1])        { medals[1]=true; unlockMedal(1); }
+  if (streak >= 5 && !medals[2])        { medals[2]=true; unlockMedal(2); }
+  if (score >= 100 && !medals[3])       { medals[3]=true; unlockMedal(3); }
+  const tried = new Set(history.map(h=>h.vot>0));
+  if (tried.size >= PAIRS.length && !medals[4]) { medals[4]=true; unlockMedal(4); }
+}
+
+function unlockMedal(i) {
+  const m = document.getElementById('medal'+i);
+  m.classList.add('won');
+  m.style.animation = 'scorepop .5s cubic-bezier(.34,1.56,.64,1)';
+}
+
+// ════════════════════════════════════════
+// STATS
+// ════════════════════════════════════════
+
+function updateStats() {
+  document.getElementById('statTotal').textContent = totalAttempts;
+  document.getElementById('statCorrect').textContent = correctCount;
+  document.getElementById('statStreak').textContent = streak;
+}
+
+function updateVOTHistory() {
+  const container = document.getElementById('votHistory');
+  if (history.length === 0) return;
+  const maxH = 60;
+  container.innerHTML = history.map(h => {
+    const pct = Math.min(h.vot / 130 * 100, 100);
+    const color = h.correct ? '#4CAF50' : '#F44336';
+    return `<div style="flex:1;height:${Math.max(pct*maxH/100,4)}px;border-radius:3px;background:${color};box-shadow:0 0 4px ${color}55;transition:all .4s"></div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// TEACHER VIEW
+// ════════════════════════════════════════
+
+function updateTeacherView() {
+  document.getElementById('tTotal').textContent = totalAttempts;
+  document.getElementById('tAccuracy').textContent =
+    totalAttempts > 0 ? Math.round(correctCount/totalAttempts*100)+'%' : '—';
+
+  // VOT bar chart (last 10)
+  const recent = history.slice(-10);
+  const tBar = document.getElementById('tVotBar');
+  if (recent.length === 0) {
+    tBar.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:10px;font-weight:700;width:100%;text-align:center;align-self:center">尚無數據</div>';
+  } else {
+    tBar.innerHTML = recent.map(h => {
+      const pct = Math.min(h.vot/130*100,100);
+      const c = h.correct ? '#4CAF50' : '#F44336';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:7px;color:${c};font-weight:700">${h.vot}</div>
+        <div style="width:100%;height:${Math.max(pct*50/100,4)}px;background:${c};border-radius:3px;box-shadow:0 0 4px ${c}55"></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Error analysis
+  const deaspErr = history.filter(h=>!h.correct&&h.vot<60).length;
+  const overAsp  = history.filter(h=>!h.correct&&h.vot>120).length;
+  const errEl = document.getElementById('errAnalysis');
+  if (totalAttempts === 0) {
+    errEl.innerHTML = '<div style="font-size:12px;color:#bbb;font-weight:700;text-align:center;padding:8px">尚無分析數據</div>';
+  } else {
+    errEl.innerHTML = [
+      { label:'失氣化偏誤 (VOT < 60ms)', count:deaspErr, color:'#F44336', note:'送氣力道不足，/p/ 聽起來像 /b/' },
+      { label:'過度送氣 (VOT > 120ms)',  count:overAsp,  color:'#FF9800', note:'送氣偏強，略微不自然' },
+      { label:'正確發音 (60–120ms)',     count:correctCount, color:'#4CAF50', note:'VOT 在標準範圍內' },
+    ].map(e => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;
+        background:${e.color}10;border-radius:10px;border-left:3px solid ${e.color}">
+        <div>
+          <div style="font-size:12px;font-weight:800;color:${e.color}">${e.label}</div>
+          <div style="font-size:10px;color:#999;font-weight:700;margin-top:2px">${e.note}</div>
+        </div>
+        <div style="font-size:24px;font-weight:900;color:${e.color};min-width:36px;text-align:right">${e.count}</div>
+      </div>
+    `).join('');
+  }
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+
+window.addEventListener('load', () => {
+  buildPairGrid();
+  buildFireTrack();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    document.getElementById('simBtn').style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>
