@@ -9,913 +9,1098 @@
 <title>VOT-Sync 語音大冒險</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Noto+Sans+TC:wght@700;900&family=JetBrains+Mono:wght@400;700&display=swap');
-
-:root {
-  --orange: #FF6B35; --yellow: #FFD93D; --bg: #FFF9F0;
-  --green: #4CAF50; --red: #F44336; --amber: #FFC107;
-  --purple: #7B1FA2; --purple-l: #F3E5F5;
-  --blue: #1565C0; --blue-l: #E3F2FD;
+:root{
+  --orange:#FF6B35;--yellow:#FFD93D;--bg:#FFF9F0;
+  --green:#4CAF50;--red:#F44336;--amber:#FFC107;
+  --purple:#7B1FA2;--purple-l:#F3E5F5;
+  --blue:#1565C0;--blue-l:#E3F2FD;
+  --teal:#00897B;--teal-l:#E0F2F1;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; }
-body { font-family: 'Nunito', 'Noto Sans TC', sans-serif; background: var(--bg); }
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Nunito','Noto Sans TC',sans-serif;background:var(--bg)}
 
-/* ══ LAYOUT: iPad landscape = left panel + right panel ══ */
-.app-shell { display: flex; flex-direction: column; height: 100vh; }
+/* ══ SHELL ══ */
+.shell{display:flex;flex-direction:column;height:100vh}
+.hdr{background:linear-gradient(135deg,var(--orange),var(--yellow));padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;box-shadow:0 2px 12px rgba(255,107,53,.3)}
+.hdr h1{font-size:22px;font-weight:900;color:white;text-shadow:2px 2px 0 rgba(0,0,0,.12)}
+.hdr p{font-size:11px;color:rgba(255,255,255,.85);font-weight:700}
+.score-badge{background:white;color:var(--orange);font-size:16px;font-weight:900;padding:6px 16px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .2s}
+.score-badge.pop{animation:scorepop .4s cubic-bezier(.34,1.56,.64,1)}
 
-.header {
-  background: linear-gradient(135deg, var(--orange), var(--yellow));
-  padding: 10px 24px; display: flex; align-items: center; justify-content: space-between;
-  flex-shrink: 0; box-shadow: 0 2px 12px rgba(255,107,53,.3);
-}
-.header h1 { font-size: 22px; font-weight: 900; color: white; text-shadow: 2px 2px 0 rgba(0,0,0,.12); }
-.header p  { font-size: 11px; color: rgba(255,255,255,.85); font-weight: 700; }
-.score-badge {
-  background: white; color: var(--orange); font-size: 16px; font-weight: 900;
-  padding: 6px 16px; border-radius: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.15);
-  transition: transform .2s;
-}
-.score-badge.pop { animation: scorepop .4s cubic-bezier(.34,1.56,.64,1); }
+/* ══ TABS ══ */
+.tabs{display:flex;gap:4px;padding:8px 20px;background:white;border-bottom:2px solid #f0e8d8;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{font-family:inherit;font-size:13px;font-weight:800;padding:8px 18px;border-radius:20px;border:none;cursor:pointer;background:#f5f0e8;color:#999;transition:.2s;white-space:nowrap;flex-shrink:0}
+.tab.active{background:linear-gradient(135deg,var(--orange),var(--yellow));color:white;box-shadow:0 3px 10px rgba(255,107,53,.35)}
+.tab.t-teacher.active{background:linear-gradient(135deg,var(--purple),#CE93D8)}
 
-/* tabs */
-.tabs {
-  display: flex; gap: 4px; padding: 8px 20px; background: white;
-  border-bottom: 2px solid #f0e8d8; flex-shrink: 0;
-}
-.tab {
-  font-family: inherit; font-size: 13px; font-weight: 800;
-  padding: 8px 20px; border-radius: 20px; border: none;
-  cursor: pointer; background: #f5f0e8; color: #999; transition: .2s; white-space: nowrap;
-}
-.tab.active {
-  background: linear-gradient(135deg, var(--orange), var(--yellow));
-  color: white; box-shadow: 0 3px 10px rgba(255,107,53,.35);
-}
-.tab.teacher-tab.active { background: linear-gradient(135deg, var(--purple), #CE93D8); }
+/* ══ MAIN SPLIT ══ */
+.main{flex:1;display:flex;overflow:hidden}
+.lpanel{width:340px;min-width:340px;border-right:2px solid #f0e8d8;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.rpanel{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.section{display:none}.section.active{display:contents}
 
-/* main body splits left/right on iPad landscape */
-.main-body { flex: 1; display: flex; overflow: hidden; }
+/* ══ CARD ══ */
+.card{background:white;border-radius:20px;padding:16px;box-shadow:0 3px 14px rgba(0,0,0,.07)}
+.sec-title{font-size:17px;font-weight:900;margin-bottom:12px}
 
-.left-panel  { width: 340px; min-width: 340px; display: flex; flex-direction: column; border-right: 2px solid #f0e8d8; overflow-y: auto; padding: 16px; gap: 12px; }
-.right-panel { flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 16px; gap: 12px; }
+/* ══ SOUND GROUP SELECTOR ══ */
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sg-btn{font-family:inherit;font-size:12px;font-weight:800;padding:10px 8px;border-radius:14px;border:2px solid;cursor:pointer;text-align:center;transition:all .2s;background:white}
+.sg-btn:active,.sg-btn.sel{transform:scale(.97)}
+.sg-type{font-size:8px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.sg-words{font-size:16px;font-weight:900}
+.sg-badge{font-size:9px;font-weight:700;margin-top:3px;opacity:.7}
 
-.section { display: none; }
-.section.active { display: contents; }
+/* VOT groups */
+.sg-vot{border-color:#E1D5F5;color:#6A1B9A}.sg-vot.sel,.sg-vot:active{background:#EDE7F6;border-color:var(--purple)}
+/* Listen groups */
+.sg-lis{border-color:#B2DFDB;color:var(--teal)}.sg-lis.sel,.sg-lis:active{background:var(--teal-l);border-color:var(--teal)}
 
-/* ══ CARDS ══ */
-.card { background: white; border-radius: 20px; padding: 16px; box-shadow: 0 3px 14px rgba(0,0,0,.07); }
-.sec-title { font-size: 17px; font-weight: 900; margin-bottom: 12px; }
+/* ══ TARGET DISPLAY ══ */
+.target-display{text-align:center;padding:18px;background:linear-gradient(135deg,rgba(255,107,53,.06),rgba(255,211,61,.06));border-radius:20px;border:2px dashed rgba(255,107,53,.25)}
+.target-emoji{font-size:52px;display:block;margin-bottom:6px}
+.target-word{font-size:44px;font-weight:900;color:var(--orange)}
+.target-ipa{font-size:13px;color:#aaa;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:4px}
+.target-hint{font-size:12px;color:#bbb;font-weight:700;margin-top:6px}
 
-/* ══ PAIR GRID ══ */
-.mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.mp-card {
-  background: #F8F4FF; border: 2px solid #E1D5F5; border-radius: 16px;
-  padding: 12px 8px; cursor: pointer; transition: all .2s; text-align: center;
-  font-family: inherit;
-}
-.mp-card:active, .mp-card.sel { background: #EDE7F6; border-color: var(--purple); transform: scale(.97); }
-.mp-cat  { font-size: 9px; font-weight: 900; color: #AB47BC; letter-spacing: .5px; text-transform: uppercase; margin-bottom: 4px; }
-.mp-words { display: flex; align-items: center; justify-content: center; gap: 8px; }
-.mp-p  { font-size: 18px; font-weight: 900; color: #6A1B9A; }
-.mp-b  { font-size: 18px; font-weight: 900; color: #2E7D32; }
-.mp-vs { font-size: 9px; font-weight: 900; color: #bbb; background: #f0f0f0; padding: 2px 5px; border-radius: 4px; }
-.mp-tip { font-size: 9px; color: #bbb; font-weight: 700; margin-top: 4px; }
-
-/* ══ TARGET WORD ══ */
-.target-display {
-  text-align: center; padding: 20px;
-  background: linear-gradient(135deg, rgba(255,107,53,.06), rgba(255,211,61,.06));
-  border-radius: 20px; border: 2px dashed rgba(255,107,53,.25);
-}
-.target-emoji { font-size: 56px; display: block; margin-bottom: 6px; }
-.target-word  { font-size: 48px; font-weight: 900; color: var(--orange); }
-.target-ipa   { font-size: 14px; color: #999; font-weight: 700; font-family: 'JetBrains Mono', monospace; margin-top: 6px; }
+/* mode badge */
+.mode-badge{display:inline-block;padding:4px 14px;border-radius:14px;font-size:11px;font-weight:900;margin-top:8px}
+.mode-vot{background:var(--purple-l);color:var(--purple)}
+.mode-lis{background:var(--teal-l);color:var(--teal)}
 
 /* ══ TRAFFIC LIGHT ══ */
-.tl {
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 18px; background: #111; border-radius: 18px;
-  box-shadow: 0 4px 14px rgba(0,0,0,.3);
-}
-.tl-dot { width: 44px; height: 44px; border-radius: 50%; opacity: .12; transition: all .4s; flex-shrink: 0; }
-.tl-dot.on { opacity: 1; box-shadow: 0 0 24px currentColor, 0 0 8px currentColor; }
-.tl-r { background: var(--red);   color: var(--red); }
-.tl-y { background: var(--amber); color: var(--amber); }
-.tl-g { background: var(--green); color: var(--green); }
-.tl-msg { font-size: 17px; font-weight: 900; color: white; flex: 1; }
+.tl{display:flex;align-items:center;gap:12px;padding:14px 18px;background:#111;border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
+.tl-dot{width:44px;height:44px;border-radius:50%;opacity:.12;transition:all .4s;flex-shrink:0}
+.tl-dot.on{opacity:1;box-shadow:0 0 24px currentColor,0 0 8px currentColor}
+.tl-r{background:var(--red);color:var(--red)}
+.tl-y{background:var(--amber);color:var(--amber)}
+.tl-g{background:var(--green);color:var(--green)}
+.tl-msg{font-size:16px;font-weight:900;color:white;flex:1}
 
 /* ══ DRAGON GAME ══ */
-.game-area {
-  background: #1a0a2e; border-radius: 18px; padding: 16px;
-}
-.game-lbl { color: rgba(255,255,255,.45); font-size: 11px; font-weight: 800; margin-bottom: 8px; }
-.dragon-row { display: flex; align-items: center; }
-.dragon-em  { font-size: 52px; flex-shrink: 0; }
-.fire-track { flex: 1; display: flex; gap: 4px; margin: 0 10px; }
-.fire-cell  {
-  flex: 1; height: 24px; border-radius: 6px; background: rgba(255,255,255,.1);
-  transition: all .35s cubic-bezier(.34,1.3,.64,1);
-}
-.fire-cell.lit     { background: linear-gradient(135deg,#FF6B35,#FFD93D); box-shadow: 0 0 8px #FF6B35; transform: scaleY(1.15); }
-.fire-cell.lit-all { background: linear-gradient(135deg,#FF4081,#FFD93D); box-shadow: 0 0 16px #FFD93D; }
-.castle-em { font-size: 40px; flex-shrink: 0; transition: transform .3s; }
-.castle-em.win { transform: scale(1.2) rotate(-5deg); filter: drop-shadow(0 0 10px #FFD93D); }
-.win-msg { color: #FFD93D; font-size: 15px; font-weight: 900; text-align: center; margin-top: 8px; animation: pulse 1s infinite; }
+.game-area{background:#1a0a2e;border-radius:18px;padding:14px}
+.game-lbl{color:rgba(255,255,255,.45);font-size:11px;font-weight:800;margin-bottom:8px}
+.dragon-row{display:flex;align-items:center}
+.dragon-em{font-size:52px;flex-shrink:0}
+.fire-track{flex:1;display:flex;gap:4px;margin:0 10px}
+.fire-cell{flex:1;height:24px;border-radius:6px;background:rgba(255,255,255,.1);transition:all .35s cubic-bezier(.34,1.3,.64,1)}
+.fire-cell.lit{background:linear-gradient(135deg,#FF6B35,#FFD93D);box-shadow:0 0 8px #FF6B35;transform:scaleY(1.15)}
+.fire-cell.lit-all{background:linear-gradient(135deg,#FF4081,#FFD93D);box-shadow:0 0 16px #FFD93D}
+.castle-em{font-size:40px;flex-shrink:0;transition:transform .3s}
+.castle-em.win{transform:scale(1.2) rotate(-5deg);filter:drop-shadow(0 0 10px #FFD93D)}
+.win-msg{color:#FFD93D;font-size:14px;font-weight:900;text-align:center;margin-top:8px;animation:pulse 1s infinite}
 
 /* ══ SENSORS ══ */
-.sensor-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
-.sensor-card {
-  background: white; border-radius: 16px; padding: 14px; text-align: center;
-  border: 2px solid #e8e0d8; transition: all .4s;
-}
-.sensor-icon  { font-size: 32px; margin-bottom: 6px; display: block; transition: transform .3s; }
-.sensor-title { font-size: 11px; font-weight: 900; }
-.sensor-sub   { font-size: 9px; color: #bbb; font-weight: 700; }
+.sensor-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.sensor-card{background:white;border-radius:16px;padding:12px;text-align:center;border:2px solid #e8e0d8;transition:all .4s}
+.sensor-icon{font-size:30px;margin-bottom:5px;display:block;transition:transform .3s}
+.sensor-title{font-size:11px;font-weight:900}
+.sensor-sub{font-size:9px;color:#bbb;font-weight:700}
 
-/* ══ RECORD BUTTON ══ */
-.btn-rec {
-  font-family: inherit; font-size: 18px; font-weight: 900;
-  padding: 16px; border-radius: 20px; border: none; cursor: pointer; width: 100%;
-  background: linear-gradient(135deg, var(--orange), var(--yellow));
-  color: white; box-shadow: 0 5px 0 rgba(0,0,0,.15); transition: .15s;
-}
-.btn-rec:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.15); }
-.btn-rec.recording { background: linear-gradient(135deg,#F44336,#FF7043); animation: pulse 1s infinite; }
-.btn-sim {
-  font-family: inherit; font-size: 13px; font-weight: 800;
-  padding: 10px; border-radius: 14px; border: 2px solid #CE93D8;
-  background: var(--purple-l); color: var(--purple); cursor: pointer; width: 100%;
-  transition: .15s; display: none; margin-top: 8px;
-}
+/* ══ BUTTONS ══ */
+.btn-rec{font-family:inherit;font-size:18px;font-weight:900;padding:16px;border-radius:20px;border:none;cursor:pointer;width:100%;background:linear-gradient(135deg,var(--orange),var(--yellow));color:white;box-shadow:0 5px 0 rgba(0,0,0,.15);transition:.15s}
+.btn-rec:active{transform:translateY(3px);box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.btn-rec.recording{background:linear-gradient(135deg,#F44336,#FF7043);animation:pulse 1s infinite}
+.btn-sim{font-family:inherit;font-size:13px;font-weight:800;padding:10px;border-radius:14px;border:2px solid #CE93D8;background:var(--purple-l);color:var(--purple);cursor:pointer;width:100%;transition:.15s;display:none;margin-top:8px}
+
+/* ══ LISTEN MODE ══ */
+.listen-wrap{background:var(--teal-l);border-radius:18px;padding:16px}
+.listen-title{font-size:15px;font-weight:900;color:var(--teal);margin-bottom:12px}
+.listen-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.listen-choice{font-family:inherit;font-size:18px;font-weight:900;padding:16px;border-radius:16px;border:3px solid #B2DFDB;background:white;cursor:pointer;transition:all .2s;text-align:center}
+.listen-choice:active{transform:scale(.96)}
+.listen-choice.correct-ans{background:#E8F5E9;border-color:var(--green);color:var(--green)}
+.listen-choice.wrong-ans{background:#FFEBEE;border-color:var(--red);color:var(--red);animation:shake .3s}
+.play-btn{font-family:inherit;font-size:15px;font-weight:900;padding:14px;border-radius:16px;border:none;cursor:pointer;width:100%;background:linear-gradient(135deg,var(--teal),#26A69A);color:white;box-shadow:0 4px 0 rgba(0,0,0,.15);transition:.15s}
+.play-btn:active{transform:translateY(2px)}
 
 /* ══ FEEDBACK ══ */
-.fb-box {
-  border-radius: 16px; padding: 16px; font-size: 14px; font-weight: 700;
-  line-height: 1.7; border-left: 4px solid; display: none;
-}
-.fb-box.correct { background: #E8F5E9; border-color: var(--green); color: #2E7D32; }
-.fb-box.warn    { background: #FFF8E1; border-color: var(--amber); color: #F57F17; }
-.fb-box.error   { background: #FFEBEE; border-color: var(--red);   color: #C62828; }
-.fb-vot { margin-top: 6px; font-size: 11px; opacity: .65; font-family: 'JetBrains Mono', monospace; }
+.fb-box{border-radius:16px;padding:16px;font-size:14px;font-weight:700;line-height:1.7;border-left:4px solid;display:none}
+.fb-box.correct{background:#E8F5E9;border-color:var(--green);color:#2E7D32}
+.fb-box.warn{background:#FFF8E1;border-color:var(--amber);color:#F57F17}
+.fb-box.error{background:#FFEBEE;border-color:var(--red);color:#C62828}
+.fb-vot{margin-top:6px;font-size:11px;opacity:.65;font-family:'JetBrains Mono',monospace}
+.mic-error{display:none;padding:12px;background:#FFEBEE;border-radius:14px;font-size:12px;font-weight:700;color:#C62828;margin-bottom:8px}
+
+/* ══ RADAR CHART ══ */
+.radar-wrap{background:#1a1a2e;border-radius:18px;padding:16px;display:flex;flex-direction:column;align-items:center}
+.radar-title{color:rgba(255,255,255,.7);font-size:12px;font-weight:800;margin-bottom:12px;letter-spacing:.5px}
+canvas#radarCanvas{display:block}
+.radar-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;justify-content:center}
+.radar-leg-item{font-size:10px;font-weight:800;display:flex;align-items:center;gap:4px}
+.radar-leg-dot{width:10px;height:10px;border-radius:50%}
 
 /* ══ MEDALS ══ */
-.medal-row { display: flex; gap: 14px; justify-content: center; margin: 12px 0; }
-.medal { font-size: 36px; opacity: .18; transition: all .4s; transform: scale(.8); }
-.medal.won { opacity: 1; transform: scale(1.1) rotate(-5deg); }
+.medal-row{display:flex;gap:12px;justify-content:center;margin:12px 0}
+.medal{font-size:34px;opacity:.18;transition:all .4s;transform:scale(.8)}
+.medal.won{opacity:1;transform:scale(1.1) rotate(-5deg)}
 
 /* ══ VOT HISTORY ══ */
-.vot-hist-wrap {
-  background: #1a1a2e; border-radius: 14px; padding: 12px;
-  min-height: 80px; display: flex; align-items: flex-end; gap: 4px;
-}
-.vot-hist-bar {
-  flex: 1; border-radius: 4px; transition: height .4s, background .4s;
-  min-height: 4px;
-}
+.vot-hist-wrap{background:#1a1a2e;border-radius:14px;padding:12px;min-height:70px;display:flex;align-items:flex-end;gap:4px}
 
-/* ══ TEACHER PANEL ══ */
-.teacher-stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-.tstat { border-radius: 14px; padding: 14px; text-align: center; }
-.tstat-val { font-size: 32px; font-weight: 900; }
-.tstat-lbl { font-size: 10px; font-weight: 900; margin-top: 2px; }
+/* ══ TEACHER ══ */
+.tstat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.tstat{border-radius:14px;padding:14px;text-align:center}
+.tstat-val{font-size:30px;font-weight:900}
+.tstat-lbl{font-size:10px;font-weight:900;margin-top:2px}
+.err-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:12px;margin-bottom:8px;border-left:4px solid}
 
-.err-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 12px 14px; border-radius: 12px; margin-bottom: 8px; border-left: 4px solid;
-}
-.err-row-text .lbl { font-size: 13px; font-weight: 800; }
-.err-row-text .sub { font-size: 10px; color: #888; font-weight: 700; margin-top: 2px; }
-.err-count { font-size: 28px; font-weight: 900; }
-
-/* ══ LEARN TAB ══ */
-.vocab-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.vocab-card { border-radius: 18px; padding: 16px; text-align: center; }
-.vocab-em   { font-size: 36px; display: block; margin-bottom: 8px; }
-.vocab-name { font-size: 16px; font-weight: 900; margin-bottom: 6px; }
-.vocab-desc { font-size: 12px; font-weight: 700; color: #555; line-height: 1.6; }
-.vocab-badge { display: inline-block; margin-top: 10px; background: rgba(0,0,0,.07); border-radius: 12px; padding: 4px 12px; font-size: 11px; font-weight: 800; font-family: 'JetBrains Mono', monospace; }
-
-.tip-item { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid #f5f5f5; }
-.tip-item:last-child { border-bottom: none; }
-.tip-em { font-size: 30px; flex-shrink: 0; }
-.tip-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
-.tip-desc  { font-size: 12px; color: #777; font-weight: 700; line-height: 1.6; }
-
-.tipbox {
-  background: linear-gradient(135deg,#fff9e6,#fff3cc);
-  border-radius: 16px; padding: 14px; border-left: 4px solid var(--yellow);
-}
-.tipbox h4 { font-size: 13px; font-weight: 900; color: #B8860B; margin-bottom: 6px; }
-.tipbox p  { font-size: 12px; font-weight: 700; color: #555; line-height: 1.7; }
-
-/* ══ ERROR / MIC ══ */
-.mic-error {
-  display: none; padding: 12px 14px; background: #FFEBEE;
-  border-radius: 14px; font-size: 12px; font-weight: 700; color: #C62828;
-}
+/* ══ LEARN ══ */
+.vocab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vocab-card{border-radius:18px;padding:16px;text-align:center}
+.tip-item{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid #f5f5f5}
+.tip-item:last-child{border-bottom:none}
+.tipbox{background:linear-gradient(135deg,#fff9e6,#fff3cc);border-radius:16px;padding:14px;border-left:4px solid var(--yellow)}
 
 /* ══ ANIMATIONS ══ */
-@keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.55} }
-@keyframes scorepop { 0%{transform:scale(1)} 50%{transform:scale(1.25)} 100%{transform:scale(1)} }
-@keyframes fadeup   { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-.fadeup { animation: fadeup .25s ease; }
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.55}}
+@keyframes scorepop{0%{transform:scale(1)}50%{transform:scale(1.25)}100%{transform:scale(1)}}
+@keyframes fadeup{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.fadeup{animation:fadeup .25s ease}
 </style>
 </head>
 <body>
-<div class="app-shell">
+<div class="shell">
 
-  <!-- ══ HEADER ══ -->
-  <div class="header">
-    <div>
-      <h1>🐉 VOT-Sync 語音大冒險</h1>
-      <p>English Sound Adventure — /p/ vs /b/</p>
+<!-- ══ HEADER ══ -->
+<div class="hdr">
+  <div><h1>🐉 VOT-Sync 語音大冒險</h1><p>English Sound Adventure</p></div>
+  <div class="score-badge" id="scoreBadge">⭐ 0 分</div>
+</div>
+
+<!-- ══ TABS ══ -->
+<div class="tabs">
+  <button class="tab active"     onclick="switchTab(0,this)">🎮 練習</button>
+  <button class="tab"            onclick="switchTab(1,this)">📡 我的雷達</button>
+  <button class="tab"            onclick="switchTab(2,this)">🏆 成就</button>
+  <button class="tab"            onclick="switchTab(3,this)">📖 學一學</button>
+  <button class="tab t-teacher"  onclick="switchTab(4,this)">🔬 老師看</button>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+
+<!-- ══════════════════════════════════════
+     TAB 0 — 練習
+══════════════════════════════════════ -->
+<div class="section active" id="tab0">
+  <div class="lpanel">
+
+    <!-- 音組選擇 -->
+    <div class="card">
+      <div class="sec-title">選音組 🎯</div>
+      <div style="font-size:10px;font-weight:800;color:var(--purple);margin-bottom:6px">🎤 VOT 發音分析</div>
+      <div class="sg-grid" id="sgVOT"></div>
+      <div style="font-size:10px;font-weight:800;color:var(--teal);margin:10px 0 6px">👂 聽音辨別練習</div>
+      <div class="sg-grid" id="sgListen"></div>
     </div>
-    <div class="score-badge" id="scoreBadge">⭐ 0 分</div>
-  </div>
 
-  <!-- ══ TABS ══ -->
-  <div class="tabs">
-    <button class="tab active"       onclick="switchTab(0,this)">🎮 練習</button>
-    <button class="tab"              onclick="switchTab(1,this)">🏆 成就</button>
-    <button class="tab"              onclick="switchTab(2,this)">📖 學一學</button>
-    <button class="tab teacher-tab"  onclick="switchTab(3,this)">🔬 老師看</button>
-  </div>
+    <!-- 目標字 -->
+    <div class="target-display">
+      <span class="target-emoji" id="tgtEmoji">🐷</span>
+      <div class="target-word" id="tgtWord">Pig</div>
+      <div class="target-ipa"  id="tgtIPA">/pɪg/</div>
+      <div class="target-hint" id="tgtHint">練習 /p/ 的送氣！</div>
+      <span class="mode-badge" id="modeBadge" style="display:none"></span>
+    </div>
 
-  <!-- ══ MAIN BODY ══ -->
-  <div class="main-body">
+    <!-- 感測器（只有VOT模式顯示） -->
+    <div class="sensor-row" id="sensorRow">
+      <div class="sensor-card" id="sBurst"><span class="sensor-icon">💥</span><div class="sensor-title">爆破</div><div class="sensor-sub">Burst</div></div>
+      <div class="sensor-card" id="sAir">  <span class="sensor-icon">💨</span><div class="sensor-title">送氣</div><div class="sensor-sub">Aspiration</div></div>
+      <div class="sensor-card" id="sVoice"><span class="sensor-icon">🎵</span><div class="sensor-title">聲帶</div><div class="sensor-sub">Voicing</div></div>
+    </div>
 
-    <!-- ════════════════════════════════
-         TAB 0 — 練習
-    ════════════════════════════════ -->
-    <div class="section active" id="tab0">
+  </div><!-- lpanel -->
 
-      <!-- LEFT: 選字 + 目標字 -->
-      <div class="left-panel">
-        <div class="card">
-          <div class="sec-title">選一組來練習 👇</div>
-          <div class="mp-grid" id="mpGrid"></div>
-        </div>
+  <div class="rpanel">
 
-        <div class="target-display">
-          <span class="target-emoji" id="targetEmoji">🐷</span>
-          <div class="target-word" id="targetWord">Pig</div>
-          <div class="target-ipa"  id="targetIPA">/pɪg/</div>
-          <div style="font-size:12px;color:#aaa;font-weight:700;margin-top:6px">練習 /p/ 的送氣！</div>
-        </div>
-
-        <!-- 感測器 -->
-        <div class="sensor-row">
-          <div class="sensor-card" id="sBurst">
-            <span class="sensor-icon">💥</span>
-            <div class="sensor-title">爆破</div>
-            <div class="sensor-sub">Burst</div>
-          </div>
-          <div class="sensor-card" id="sAir">
-            <span class="sensor-icon">💨</span>
-            <div class="sensor-title">送氣</div>
-            <div class="sensor-sub">Aspiration</div>
-          </div>
-          <div class="sensor-card" id="sVoice">
-            <span class="sensor-icon">🎵</span>
-            <div class="sensor-title">聲帶</div>
-            <div class="sensor-sub">Voicing</div>
-          </div>
-        </div>
+    <!-- 龍噴火 -->
+    <div class="game-area">
+      <div class="game-lbl">🔥 DRAGON FIRE — <span id="fireCount">0</span>/10</div>
+      <div class="dragon-row">
+        <span class="dragon-em">🐉</span>
+        <div class="fire-track" id="fireTrack"></div>
+        <span class="castle-em" id="castleEm">🏰</span>
       </div>
+      <div id="winMsg" class="win-msg" style="display:none">🎉 城堡攻破了！你好厲害！</div>
+    </div>
 
-      <!-- RIGHT: 遊戲 + 錄音 + 回饋 -->
-      <div class="right-panel">
+    <!-- 紅綠燈 -->
+    <div class="tl">
+      <div class="tl-dot tl-r" id="tlR"></div>
+      <div class="tl-dot tl-y" id="tlY"></div>
+      <div class="tl-dot tl-g" id="tlG"></div>
+      <span class="tl-msg" id="tlMsg">⬅️ 選一個音組開始！</span>
+    </div>
 
-        <!-- 龍噴火 -->
-        <div class="game-area">
-          <div class="game-lbl">🔥 DRAGON FIRE — <span id="fireCount">0</span>/10</div>
-          <div class="dragon-row">
-            <span class="dragon-em">🐉</span>
-            <div class="fire-track" id="fireTrack"></div>
-            <span class="castle-em" id="castleEm">🏰</span>
-          </div>
-          <div id="winMsg" class="win-msg" style="display:none">🎉 城堡攻破了！你好厲害！</div>
-        </div>
+    <!-- VOT 模式 -->
+    <div id="votMode">
+      <button class="btn-rec" id="recBtn" onclick="toggleRecord()">
+        🎙️ 說「<span id="recWord">Pig</span>」
+      </button>
+      <button class="btn-sim" id="simBtn" onclick="simVOT()">🎲 模擬發音（測試用）</button>
+      <div class="mic-error" id="micErr"></div>
+    </div>
 
-        <!-- 紅綠燈 -->
-        <div class="tl">
-          <div class="tl-dot tl-r" id="tlR"></div>
-          <div class="tl-dot tl-y" id="tlY"></div>
-          <div class="tl-dot tl-g" id="tlG"></div>
-          <span class="tl-msg" id="tlMsg">🎙️ 點下面說說看！</span>
-        </div>
-
-        <!-- 錄音 -->
-        <button class="btn-rec" id="recBtn" onclick="toggleRecord()">
-          🎙️ 說「<span id="recWord">Pig</span>」
+    <!-- 聽音模式 -->
+    <div id="listenMode" style="display:none">
+      <div class="listen-wrap">
+        <div class="listen-title">👂 聽聲音，選哪個字？</div>
+        <button class="play-btn" id="playBtn" onclick="playListenAudio()">
+          🔊 播放聲音
         </button>
-        <button class="btn-sim" id="simBtn" onclick="simResult()">
-          🎲 模擬發音（測試用）
-        </button>
-        <div class="mic-error" id="micErr"></div>
-
-        <!-- 回饋 -->
-        <div class="fb-box fadeup" id="fbBox"></div>
-
+        <div class="listen-choices" id="listenChoices"></div>
       </div>
     </div>
 
-    <!-- ════════════════════════════════
-         TAB 1 — 成就
-    ════════════════════════════════ -->
-    <div class="section" id="tab1">
-      <div class="left-panel">
-        <div class="card">
-          <div class="sec-title">🏅 我的徽章</div>
-          <div class="medal-row">
-            <span class="medal" id="m0" title="首次正確">🥇</span>
-            <span class="medal" id="m1" title="連續3次">🔥</span>
-            <span class="medal" id="m2" title="連續5次">⚡</span>
-            <span class="medal" id="m3" title="達到100分">👑</span>
-            <span class="medal" id="m4" title="練習全部單字">🌟</span>
-          </div>
-          <div style="font-size:11px;color:#bbb;font-weight:700;text-align:center">正確次數夠多就會亮！</div>
-        </div>
+    <!-- 回饋 -->
+    <div class="fb-box fadeup" id="fbBox"></div>
 
-        <div class="card">
-          <div class="sec-title">📊 我的記錄</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-            <div style="text-align:center;background:#FFF3E0;border-radius:14px;padding:14px">
-              <div style="font-size:32px;font-weight:900;color:var(--orange)" id="stTotal">0</div>
-              <div style="font-size:10px;font-weight:800;color:var(--orange)">總練習</div>
-            </div>
-            <div style="text-align:center;background:#E8F5E9;border-radius:14px;padding:14px">
-              <div style="font-size:32px;font-weight:900;color:var(--green)" id="stCorrect">0</div>
-              <div style="font-size:10px;font-weight:800;color:var(--green)">正確次數</div>
-            </div>
-            <div style="text-align:center;background:var(--blue-l);border-radius:14px;padding:14px">
-              <div style="font-size:32px;font-weight:900;color:var(--blue)" id="stStreak">0</div>
-              <div style="font-size:10px;font-weight:800;color:var(--blue)">連續正確</div>
-            </div>
-          </div>
-        </div>
+  </div><!-- rpanel -->
+</div><!-- tab0 -->
+
+<!-- ══════════════════════════════════════
+     TAB 1 — 雷達圖
+══════════════════════════════════════ -->
+<div class="section" id="tab1">
+  <div class="lpanel">
+    <div class="card">
+      <div class="sec-title">📡 我的語音雷達</div>
+      <p style="font-size:12px;font-weight:700;color:#888;line-height:1.7">
+        每個音組練習得越多，雷達圖的形狀就越大！<br>
+        目標是讓六個角都變成綠色大三角！
+      </p>
+      <div style="margin-top:14px">
+        <div style="font-size:12px;font-weight:800;color:#555;margin-bottom:8px">各音組正確率</div>
+        <div id="radarStats"></div>
       </div>
+    </div>
+    <div class="card">
+      <div class="sec-title">💪 加油建議</div>
+      <div id="radarAdvice" style="font-size:13px;font-weight:700;color:#555;line-height:1.8">
+        先去練習，這裡會告訴你哪個音最需要加強！
+      </div>
+    </div>
+  </div>
+  <div class="rpanel">
+    <div class="radar-wrap">
+      <div class="radar-title">PHONEME ACCURACY RADAR</div>
+      <canvas id="radarCanvas" width="400" height="400"></canvas>
+      <div class="radar-legend" id="radarLegend"></div>
+    </div>
+  </div>
+</div>
 
-      <div class="right-panel">
-        <div class="card">
-          <div class="sec-title">📈 我的 VOT 歷史</div>
-          <div class="vot-hist-wrap" id="votHist">
-            <div style="color:rgba(255,255,255,.3);font-size:12px;font-weight:700;width:100%;text-align:center;align-self:center">還沒有記錄，去練習！</div>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:#bbb;font-weight:700;margin-top:8px;padding:0 4px">
-            <span>← 最早</span>
-            <span style="color:var(--green)">■ 正確（綠）　</span>
-            <span style="color:var(--red)">■ 需加油（紅）</span>
-            <span>最新 →</span>
-          </div>
+<!-- ══════════════════════════════════════
+     TAB 2 — 成就
+══════════════════════════════════════ -->
+<div class="section" id="tab2">
+  <div class="lpanel">
+    <div class="card">
+      <div class="sec-title">🏅 我的徽章</div>
+      <div class="medal-row">
+        <span class="medal" id="m0">🥇</span>
+        <span class="medal" id="m1">🔥</span>
+        <span class="medal" id="m2">⚡</span>
+        <span class="medal" id="m3">👑</span>
+        <span class="medal" id="m4">🌈</span>
+        <span class="medal" id="m5">🌟</span>
+      </div>
+      <div style="font-size:10px;color:#bbb;font-weight:700;text-align:center">正確次數夠多就會亮！</div>
+    </div>
+    <div class="card">
+      <div class="sec-title">📊 今天記錄</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="text-align:center;background:#FFF3E0;border-radius:14px;padding:14px">
+          <div style="font-size:30px;font-weight:900;color:var(--orange)" id="stTotal">0</div>
+          <div style="font-size:10px;font-weight:800;color:var(--orange)">總練習</div>
         </div>
-
-        <div class="card">
-          <div class="sec-title">🎯 正確率</div>
-          <div style="position:relative;height:16px;background:#eee;border-radius:8px;overflow:hidden;margin-bottom:8px">
-            <div id="accBar" style="height:100%;background:linear-gradient(90deg,var(--green),#81C784);border-radius:8px;transition:width 1s;width:0%"></div>
-          </div>
-          <div style="text-align:center;font-size:28px;font-weight:900;color:var(--green)" id="accPct">—</div>
+        <div style="text-align:center;background:#E8F5E9;border-radius:14px;padding:14px">
+          <div style="font-size:30px;font-weight:900;color:var(--green)" id="stCorrect">0</div>
+          <div style="font-size:10px;font-weight:800;color:var(--green)">正確次數</div>
+        </div>
+        <div style="text-align:center;background:var(--blue-l);border-radius:14px;padding:14px">
+          <div style="font-size:30px;font-weight:900;color:var(--blue)" id="stStreak">0</div>
+          <div style="font-size:10px;font-weight:800;color:var(--blue)">連續正確</div>
+        </div>
+        <div style="text-align:center;background:var(--purple-l);border-radius:14px;padding:14px">
+          <div style="font-size:30px;font-weight:900;color:var(--purple)" id="stGroups">0</div>
+          <div style="font-size:10px;font-weight:800;color:var(--purple)">練習音組</div>
         </div>
       </div>
     </div>
-
-    <!-- ════════════════════════════════
-         TAB 2 — 學一學
-    ════════════════════════════════ -->
-    <div class="section" id="tab2">
-      <div class="left-panel">
-        <div class="card">
-          <div class="sec-title">🐷 /p/ vs 🐻 /b/</div>
-          <div class="vocab-grid">
-            <div class="vocab-card" style="background:var(--blue-l)">
-              <span class="vocab-em">💨</span>
-              <div class="vocab-name">/p/ 清音</div>
-              <div class="vocab-desc">說「Pig」<br>要有強烈氣流！<br>嘴巴前放紙<br>要把紙吹動！</div>
-              <span class="vocab-badge" style="color:var(--blue)">VOT 60–130ms</span>
-            </div>
-            <div class="vocab-card" style="background:#E8F5E9">
-              <span class="vocab-em">🎵</span>
-              <div class="vocab-name">/b/ 濁音</div>
-              <div class="vocab-desc">說「Big」<br>聲帶馬上振動！<br>手放喉嚨<br>感受振動！</div>
-              <span class="vocab-badge" style="color:#2E7D32">VOT &lt; 30ms</span>
-            </div>
-          </div>
-        </div>
+  </div>
+  <div class="rpanel">
+    <div class="card">
+      <div class="sec-title">📈 VOT 歷史</div>
+      <div class="vot-hist-wrap" id="votHist">
+        <div style="color:rgba(255,255,255,.3);font-size:12px;font-weight:700;width:100%;text-align:center;align-self:center">還沒練習，快去試試！</div>
       </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#bbb;font-weight:700;margin-top:6px">
+        <span>← 最早</span>
+        <span style="color:var(--green)">■ 正確</span>
+        <span style="color:var(--red)">■ 需加油</span>
+        <span>最新 →</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="sec-title">🎯 正確率</div>
+      <div style="position:relative;height:18px;background:#eee;border-radius:9px;overflow:hidden;margin-bottom:8px">
+        <div id="accBar" style="height:100%;background:linear-gradient(90deg,var(--green),#81C784);border-radius:9px;transition:width 1s;width:0%"></div>
+      </div>
+      <div style="text-align:center;font-size:30px;font-weight:900;color:var(--green)" id="accPct">—</div>
+    </div>
+  </div>
+</div>
 
-      <div class="right-panel">
-        <div class="card">
-          <div class="sec-title">💡 練習小技巧</div>
-          <div class="tip-item">
-            <span class="tip-em">📄</span>
-            <div>
-              <div class="tip-title">/p/ 紙張練習</div>
-              <div class="tip-desc">嘴巴前放一張紙，說「Pig」要把紙吹動！感受強烈氣流衝出。</div>
-            </div>
-          </div>
-          <div class="tip-item">
-            <span class="tip-em">✋</span>
-            <div>
-              <div class="tip-title">/b/ 喉嚨感受</div>
-              <div class="tip-desc">手放喉嚨，說「Big」，要感受到振動，而且要很快開始振。</div>
-            </div>
-          </div>
-          <div class="tip-item">
-            <span class="tip-em">🔄</span>
-            <div>
-              <div class="tip-title">對比練習</div>
-              <div class="tip-desc">Pig → Big → Pig → Big，交替說，感受氣流有無的差異！</div>
-            </div>
-          </div>
+<!-- ══════════════════════════════════════
+     TAB 3 — 學一學
+══════════════════════════════════════ -->
+<div class="section" id="tab3">
+  <div class="lpanel">
+    <div class="card">
+      <div class="sec-title">🔤 音組說明</div>
+      <div class="vocab-grid">
+        <div class="vocab-card" style="background:var(--purple-l)">
+          <div style="font-size:13px;font-weight:900;color:var(--purple);margin-bottom:6px">🎤 VOT 發音組</div>
+          <div style="font-size:11px;font-weight:700;color:#555;line-height:1.7">p/b、t/d、k/g<br>爆破音<br>用氣流強弱區分</div>
         </div>
-        <div class="tipbox">
-          <h4>🌟 老師說</h4>
-          <p>偏鄉的小朋友很厲害！只要多練習，/p/ 和 /b/ 的差別你一定聽得出來、說得出來。加油！💪</p>
+        <div class="vocab-card" style="background:var(--teal-l)">
+          <div style="font-size:13px;font-weight:900;color:var(--teal);margin-bottom:6px">👂 聽音辨別組</div>
+          <div style="font-size:11px;font-weight:700;color:#555;line-height:1.7">ch/j、sh/s<br>f/v、s/z<br>摩擦音聽辨</div>
         </div>
       </div>
     </div>
+    <div class="tipbox" style="margin-top:4px">
+      <h4 style="font-size:13px;font-weight:900;color:#B8860B;margin-bottom:6px">🌟 老師說</h4>
+      <p style="font-size:12px;font-weight:700;color:#555;line-height:1.7">偏鄉的小朋友很厲害！只要多練習，這些差別你一定聽得出來、說得出來。加油！💪</p>
+    </div>
+  </div>
+  <div class="rpanel">
+    <div class="card">
+      <div class="sec-title">💡 練習小技巧</div>
+      <div class="tip-item"><span style="font-size:28px;flex-shrink:0">📄</span><div><div style="font-size:13px;font-weight:900;margin-bottom:4px">/p/ 紙張練習</div><div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">嘴巴前放一張紙，說「Pig」要把紙吹動！感受強烈氣流衝出。</div></div></div>
+      <div class="tip-item"><span style="font-size:28px;flex-shrink:0">✋</span><div><div style="font-size:13px;font-weight:900;margin-bottom:4px">/b/ 喉嚨感受</div><div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">手放喉嚨，說「Big」，要感受到振動，而且要很快開始振。</div></div></div>
+      <div class="tip-item"><span style="font-size:28px;flex-shrink:0">🐍</span><div><div style="font-size:13px;font-weight:900;margin-bottom:4px">sh vs s 練習</div><div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">「sh」嘴巴要噘起來像吹口哨，「s」嘴巴扁扁的像微笑。</div></div></div>
+      <div class="tip-item"><span style="font-size:28px;flex-shrink:0">🔄</span><div><div style="font-size:13px;font-weight:900;margin-bottom:4px">對比練習</div><div style="font-size:12px;color:#777;font-weight:700;line-height:1.6">Pig → Big → Pig → Big，交替說，感受氣流有無的差異！</div></div></div>
+    </div>
+  </div>
+</div>
 
-    <!-- ════════════════════════════════
-         TAB 3 — 老師看
-    ════════════════════════════════ -->
-    <div class="section" id="tab3">
-      <div class="left-panel">
-        <div class="card" style="border-top:3px solid var(--purple)">
-          <div class="sec-title">📋 課堂數據</div>
-          <div class="teacher-stat-grid">
-            <div class="tstat" style="background:var(--purple-l)">
-              <div class="tstat-val" style="color:var(--purple)" id="tTotal">0</div>
-              <div class="tstat-lbl" style="color:var(--purple)">練習次數</div>
-            </div>
-            <div class="tstat" style="background:#E8F5E9">
-              <div class="tstat-val" style="color:var(--green)" id="tAcc">—</div>
-              <div class="tstat-lbl" style="color:var(--green)">正確率</div>
-            </div>
-            <div class="tstat" style="background:#FFF3E0">
-              <div class="tstat-val" style="color:var(--orange)" id="tScore">0</div>
-              <div class="tstat-lbl" style="color:var(--orange)">累積分數</div>
-            </div>
-          </div>
+<!-- ══════════════════════════════════════
+     TAB 4 — 老師看
+══════════════════════════════════════ -->
+<div class="section" id="tab4">
+  <div class="lpanel">
+    <div class="card" style="border-top:3px solid var(--purple)">
+      <div class="sec-title">📋 課堂數據</div>
+      <div class="tstat-grid">
+        <div class="tstat" style="background:var(--purple-l)">
+          <div class="tstat-val" style="color:var(--purple)" id="tTotal">0</div>
+          <div class="tstat-lbl" style="color:var(--purple)">練習次數</div>
         </div>
-
-        <div class="card">
-          <div class="sec-title">📊 VOT 分布（最近10次）</div>
-          <div class="vot-hist-wrap" id="tVotBar" style="min-height:70px">
-            <div style="color:rgba(255,255,255,.3);font-size:11px;font-weight:700;width:100%;text-align:center;align-self:center">尚無數據</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:8px;font-size:10px;font-weight:700;flex-wrap:wrap">
-            <span style="background:#4CAF5018;color:var(--green);padding:2px 8px;border-radius:8px">■ 正確 60–130ms</span>
-            <span style="background:#F4433618;color:var(--red);  padding:2px 8px;border-radius:8px">■ 失氣化 &lt;60ms</span>
-          </div>
+        <div class="tstat" style="background:#E8F5E9">
+          <div class="tstat-val" style="color:var(--green)" id="tAcc">—</div>
+          <div class="tstat-lbl" style="color:var(--green)">正確率</div>
         </div>
-      </div>
-
-      <div class="right-panel">
-        <div class="card">
-          <div class="sec-title">🔍 偏誤分析</div>
-          <div id="errAnalysis">
-            <div style="font-size:13px;color:#bbb;font-weight:700;text-align:center;padding:16px">尚無數據，請先練習</div>
-          </div>
-        </div>
-
-        <div style="background:linear-gradient(135deg,#EDE7F6,#F3E5F5);border-radius:18px;padding:16px">
-          <div style="font-size:13px;font-weight:900;color:var(--purple);margin-bottom:10px">🎓 研究說明</div>
-          <div style="font-size:12px;font-weight:700;color:#555;line-height:1.9">
-            本 App 分析學童英語清濁塞音（/p/ vs /b/）的 Voice Onset Time（VOT）偏誤，為偏鄉英語語音教學研究工具。<br><br>
-            <strong>VOT 判斷標準（已針對兒童調整）：</strong><br>
-            /p/ 清音：60–130ms（長延遲）<br>
-            /b/ 濁音：＜30ms（短延遲）<br>
-            失氣化偏誤：VOT ＜ 55ms<br>
-            過度送氣：VOT ＞ 130ms
-          </div>
-          <div style="margin-top:10px;font-size:10px;color:var(--purple);font-weight:700;font-family:'JetBrains Mono',monospace">
-            VOT-Sync v1.1 ｜ 國科會研究計畫
-          </div>
+        <div class="tstat" style="background:#FFF3E0">
+          <div class="tstat-val" style="color:var(--orange)" id="tScore">0</div>
+          <div class="tstat-lbl" style="color:var(--orange)">累積分數</div>
         </div>
       </div>
     </div>
+    <div class="card">
+      <div class="sec-title">各音組正確率</div>
+      <div id="tGroupStats"></div>
+    </div>
+  </div>
+  <div class="rpanel">
+    <div class="card">
+      <div class="sec-title">🔍 VOT 偏誤分析</div>
+      <div id="errAnalysis"><div style="font-size:13px;color:#bbb;font-weight:700;text-align:center;padding:16px">尚無數據，請先練習</div></div>
+    </div>
+    <div style="background:linear-gradient(135deg,#EDE7F6,#F3E5F5);border-radius:18px;padding:16px">
+      <div style="font-size:13px;font-weight:900;color:var(--purple);margin-bottom:10px">🎓 研究說明</div>
+      <div style="font-size:11px;font-weight:700;color:#555;line-height:1.9">
+        本 App 分析學童英語清濁塞音 VOT 偏誤及摩擦音聽辨能力，為偏鄉英語語音教學研究工具。<br><br>
+        <strong>VOT 判斷標準（兒童版）：</strong><br>
+        /p,t,k/ 清音：≥40ms 判定正確<br>
+        /b,d,g/ 濁音：≤40ms 判定正確<br>
+        失氣化偏誤：VOT &lt; 35ms<br><br>
+        <strong>環境音處理：</strong>啟用噪音抑制，以背景能量中位數為基準
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:var(--purple);font-weight:700;font-family:'JetBrains Mono',monospace">VOT-Sync v1.2 ｜ 國科會研究計畫</div>
+    </div>
+  </div>
+</div>
 
-  </div><!-- .main-body -->
-</div><!-- .app-shell -->
+</div><!-- main -->
+</div><!-- shell -->
 
 <script>
-// ════════════════════════════════════════════════════
-// DATA
-// ════════════════════════════════════════════════════
-const PAIRS = [
-  { p:'Pig',  b:'Big',  emoji:'🐷', cat:'Animals', ipa:'/pɪg/', tip:'/p/ 要送氣！' },
-  { p:'Pat',  b:'Bat',  emoji:'🦇', cat:'Common',  ipa:'/pæt/', tip:'感受氣流差異' },
-  { p:'Pin',  b:'Bin',  emoji:'📌', cat:'Common',  ipa:'/pɪn/', tip:'VOT 差距很大' },
-  { p:'Pear', b:'Bear', emoji:'🐻', cat:'Animals', ipa:'/pɛr/', tip:'嘴型一樣，氣流不同' },
-  { p:'Pit',  b:'Bit',  emoji:'💡', cat:'Common',  ipa:'/pɪt/', tip:'爆破力道差異' },
-  { p:'Pull', b:'Bull', emoji:'🐂', cat:'Animals', ipa:'/pʊl/', tip:'/b/ 輕輕發' },
+// ════════════════════════════════════════════════
+// SOUND GROUPS DATA
+// ════════════════════════════════════════════════
+const VOT_GROUPS = [
+  {
+    id:'pb', label:'/p/ vs /b/', emoji:'🐷', color:'#7B1FA2', colorL:'#F3E5F5',
+    pairs:[
+      {p:'Pig', b:'Big', em:'🐷', ipa:'/pɪg/'},
+      {p:'Pat', b:'Bat', em:'🦇', ipa:'/pæt/'},
+      {p:'Pin', b:'Bin', em:'📌', ipa:'/pɪn/'},
+      {p:'Pull',b:'Bull',em:'🐂', ipa:'/pʊl/'},
+    ],
+    hint:'說清楚 /p/ 要有強烈送氣！',
+    voiceless:'p', minVOT:35, maxVOT:150,
+  },
+  {
+    id:'td', label:'/t/ vs /d/', emoji:'🦷', color:'#1565C0', colorL:'#E3F2FD',
+    pairs:[
+      {p:'Ten', b:'Den', em:'🔟', ipa:'/tɛn/'},
+      {p:'Tip', b:'Dip', em:'💧', ipa:'/tɪp/'},
+      {p:'Tan', b:'Dan', em:'🌊', ipa:'/tæn/'},
+      {p:'Town',b:'Down',em:'🏙️',ipa:'/taʊn/'},
+    ],
+    hint:'說 /t/ 舌頭要快速彈開，氣流強！',
+    voiceless:'t', minVOT:35, maxVOT:150,
+  },
+  {
+    id:'kg', label:'/k/ vs /g/', emoji:'🐱', color:'#00695C', colorL:'#E0F2F1',
+    pairs:[
+      {p:'Cat', b:'Gap', em:'🐱', ipa:'/kæt/'},
+      {p:'Cap', b:'Gap', em:'🧢', ipa:'/kæp/'},
+      {p:'Coat',b:'Goat',em:'🐐', ipa:'/koʊt/'},
+      {p:'Kay', b:'Gay', em:'🔑', ipa:'/keɪ/'},
+    ],
+    hint:'說 /k/ 舌根要用力，氣從喉嚨衝出！',
+    voiceless:'k', minVOT:35, maxVOT:160,
+  },
 ];
 
-// ── VOT 標準（針對兒童放寬）──
-// 兒童 /p/ VOT 普遍比成人短，閾值從 60ms 下調到 45ms
-// 環境音過濾也更寬鬆
-const VOT_P_MIN = 45;   // 低於此 = 失氣化
-const VOT_P_MAX = 140;  // 高於此 = 過度送氣
-const VOT_B_MAX = 35;   // 濁音上限
+const LISTEN_GROUPS = [
+  {
+    id:'chj', label:'ch vs j', emoji:'🚂', color:'#E65100', colorL:'#FFF3E0',
+    items:[
+      {word:'Chin', alt:'Gin',   em:'🧒', sound:'chin', hint:'ch 像火車「嘰」的聲音'},
+      {word:'Cheap',alt:'Jeep',  em:'🚙', sound:'cheap',hint:'ch 嘴巴要噘起來'},
+      {word:'Cheer',alt:'Jeer',  em:'🎉', sound:'cheer',hint:'ch 是清音，j 是濁音'},
+      {word:'Chain',alt:'Jane',  em:'⛓️', sound:'chain',hint:'先聽氣流，再選答案'},
+    ],
+  },
+  {
+    id:'shs', label:'sh vs s', emoji:'🐍', color:'#558B2F', colorL:'#F1F8E9',
+    items:[
+      {word:'Ship', alt:'Sip',  em:'🚢', sound:'ship', hint:'sh 嘴型噘起來，s 嘴巴扁扁'},
+      {word:'Shop', alt:'Sop',  em:'🏪', sound:'shop', hint:'sh 像靜音「噓」'},
+      {word:'Sheet',alt:'Seat', em:'📄', sound:'sheet',hint:'聽摩擦音的位置'},
+      {word:'Show', alt:'Sow',  em:'🎪', sound:'show', hint:'sh 比 s 悶一點'},
+    ],
+  },
+  {
+    id:'fv', label:'f vs v', emoji:'🦋', color:'#AD1457', colorL:'#FCE4EC',
+    items:[
+      {word:'Fan',  alt:'Van',  em:'🌀', sound:'fan',  hint:'f 無聲，v 聲帶振動'},
+      {word:'Fine', alt:'Vine', em:'🍇', sound:'fine', hint:'手放喉嚨感受振動'},
+      {word:'Fail', alt:'Veil', em:'💍', sound:'fail', hint:'f 和 v 嘴型一樣'},
+      {word:'Few',  alt:'View', em:'👁️', sound:'few',  hint:'f 是清音，v 是濁音'},
+    ],
+  },
+  {
+    id:'sz', label:'s vs z', emoji:'🐝', color:'#F9A825', colorL:'#FFFDE7',
+    items:[
+      {word:'Sip',  alt:'Zip',  em:'🤐', sound:'sip',  hint:'z 比 s 多了聲帶振動'},
+      {word:'Sue',  alt:'Zoo',  em:'🦁', sound:'sue',  hint:'聽摩擦音是否有振動'},
+      {word:'Seal', alt:'Zeal', em:'🦭', sound:'seal', hint:'s 和 z 嘴型一樣'},
+      {word:'Sap',  alt:'Zap',  em:'⚡', sound:'sap',  hint:'仔細聽聲帶有無振動'},
+    ],
+  },
+];
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
 // STATE
-// ════════════════════════════════════════════════════
-let score = 0, fireCells = 0, streak = 0;
-let totalAttempts = 0, correctCount = 0;
-let activePair = PAIRS[0];
-let history = [];
-let medals = [false,false,false,false,false];
-let triedPairs = new Set();
-let mediaRecorder = null, isRecording = false, chunks = [];
+// ════════════════════════════════════════════════
+let score=0, fireCells=0, streak=0;
+let totalAttempts=0, correctCount=0;
+let history=[];
+let medals=[false,false,false,false,false,false];
+let triedGroups=new Set();
+let mediaRecorder=null, isRecording=false, chunks=[];
 
-// ════════════════════════════════════════════════════
+// Per-group stats for radar
+let groupStats = {};
+[...VOT_GROUPS,...LISTEN_GROUPS].forEach(g => { groupStats[g.id]={attempts:0,correct:0}; });
+
+let activeGroup   = VOT_GROUPS[0];
+let activePairIdx = 0;
+let activeMode    = 'vot'; // 'vot' | 'listen'
+let listenAnswer  = null;  // correct answer for current listen item
+let listenItem    = null;
+
+// ════════════════════════════════════════════════
 // TABS
-// ════════════════════════════════════════════════════
-function switchTab(i, btn) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+// ════════════════════════════════════════════════
+function switchTab(i,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  document.querySelectorAll('.section').forEach((s,j) => s.classList.toggle('active', i===j));
-  if (i === 1) updateAchievements();
-  if (i === 3) updateTeacher();
+  document.querySelectorAll('.section').forEach((s,j)=>s.classList.toggle('active',i===j));
+  if(i===1) drawRadar();
+  if(i===2) updateAchievements();
+  if(i===4) updateTeacher();
 }
 
-// ════════════════════════════════════════════════════
-// PAIR GRID
-// ════════════════════════════════════════════════════
-function buildPairGrid() {
-  document.getElementById('mpGrid').innerHTML = PAIRS.map((p,i) => `
-    <button class="mp-card ${i===0?'sel':''}" onclick="selectPair(${i},this)">
-      <div class="mp-cat">${p.cat} ${p.emoji}</div>
-      <div class="mp-words">
-        <span class="mp-p">${p.p}</span>
-        <span class="mp-vs">vs</span>
-        <span class="mp-b">${p.b}</span>
-      </div>
-      <div class="mp-tip">${p.tip}</div>
+// ════════════════════════════════════════════════
+// BUILD GROUP SELECTORS
+// ════════════════════════════════════════════════
+function buildGroupSelectors(){
+  document.getElementById('sgVOT').innerHTML = VOT_GROUPS.map((g,i)=>`
+    <button class="sg-btn sg-vot ${i===0?'sel':''}" onclick="selectGroup('vot','${g.id}',this)" style="border-color:${g.color}20">
+      <div class="sg-type" style="color:${g.color}">${g.emoji} VOT</div>
+      <div class="sg-words" style="color:${g.color}">${g.label}</div>
+      <div class="sg-badge">${g.pairs[0].p} vs ${g.pairs[0].b}</div>
+    </button>
+  `).join('');
+
+  document.getElementById('sgListen').innerHTML = LISTEN_GROUPS.map(g=>`
+    <button class="sg-btn sg-lis" onclick="selectGroup('listen','${g.id}',this)" style="border-color:${g.color}30">
+      <div class="sg-type" style="color:${g.color}">${g.emoji} 聽音</div>
+      <div class="sg-words" style="color:${g.color}">${g.label}</div>
+      <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>
     </button>
   `).join('');
 }
 
-function selectPair(i, btn) {
-  activePair = PAIRS[i];
-  triedPairs.add(i);
-  document.querySelectorAll('.mp-card').forEach(c => c.classList.remove('sel'));
+function selectGroup(mode, id, btn){
+  document.querySelectorAll('.sg-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
-  document.getElementById('targetEmoji').textContent = activePair.emoji;
-  document.getElementById('targetWord').textContent  = activePair.p;
-  document.getElementById('targetIPA').textContent   = activePair.ipa;
-  document.getElementById('recWord').textContent     = activePair.p;
-  document.getElementById('fbBox').style.display     = 'none';
-  setTL(null, '🎙️ 點下面說說看！');
-  resetSensors();
-}
+  document.getElementById('fbBox').style.display='none';
+  setTL(null,'');
 
-// ════════════════════════════════════════════════════
-// FIRE TRACK
-// ════════════════════════════════════════════════════
-function buildFireTrack() {
-  document.getElementById('fireTrack').innerHTML =
-    Array.from({length:10}).map((_,i)=>`<div class="fire-cell" id="fc${i}"></div>`).join('');
-}
-
-function updateFire() {
-  for (let i=0;i<10;i++) {
-    const c = document.getElementById('fc'+i);
-    if (!c) continue;
-    c.className = 'fire-cell' + (i < fireCells ? (fireCells>=10?' lit lit-all':' lit') : '');
+  if(mode==='vot'){
+    activeMode='vot';
+    activeGroup=VOT_GROUPS.find(g=>g.id===id);
+    activePairIdx=0;
+    triedGroups.add(id);
+    updateTargetVOT();
+    document.getElementById('votMode').style.display='block';
+    document.getElementById('listenMode').style.display='none';
+    document.getElementById('sensorRow').style.display='grid';
+    document.getElementById('modeBadge').className='mode-badge mode-vot';
+    document.getElementById('modeBadge').textContent='🎤 發音分析';
+    document.getElementById('modeBadge').style.display='inline-block';
+    setTL(null,'🎙️ 說說看！');
+    resetSensors();
+  } else {
+    activeMode='listen';
+    activeGroup=LISTEN_GROUPS.find(g=>g.id===id);
+    triedGroups.add(id);
+    newListenItem();
+    document.getElementById('votMode').style.display='none';
+    document.getElementById('listenMode').style.display='block';
+    document.getElementById('sensorRow').style.display='none';
+    document.getElementById('modeBadge').className='mode-badge mode-lis';
+    document.getElementById('modeBadge').textContent='👂 聽音辨別';
+    document.getElementById('modeBadge').style.display='inline-block';
+    setTL(null,'👂 聽聲音，選答案！');
   }
-  document.getElementById('fireCount').textContent = fireCells;
-  const win = document.getElementById('winMsg');
-  const castle = document.getElementById('castleEm');
-  if (fireCells >= 10) { win.style.display='block'; castle.classList.add('win'); }
-  else                 { win.style.display='none';  castle.classList.remove('win'); }
 }
 
-// ════════════════════════════════════════════════════
-// TRAFFIC LIGHT
-// ════════════════════════════════════════════════════
-function setTL(diag, msg) {
-  document.getElementById('tlR').classList.toggle('on', diag==='error');
-  document.getElementById('tlY').classList.toggle('on', diag==='warn');
-  document.getElementById('tlG').classList.toggle('on', diag==='correct');
-  document.getElementById('tlMsg').textContent = msg || (
-    diag==='correct' ? '✅ 太棒了！發音正確！' :
-    diag==='warn'    ? '⚠️ 差一點，再試！' :
-    diag==='error'   ? '❌ 送更多氣！加油！' : '🎙️ 點下面說說看！'
-  );
+function updateTargetVOT(){
+  const pair=activeGroup.pairs[activePairIdx];
+  document.getElementById('tgtEmoji').textContent=pair.em;
+  document.getElementById('tgtWord').textContent=pair.p;
+  document.getElementById('tgtIPA').textContent=pair.ipa;
+  document.getElementById('tgtHint').textContent=activeGroup.hint;
+  document.getElementById('recWord').textContent=pair.p;
 }
 
-// ════════════════════════════════════════════════════
-// SENSORS
-// ════════════════════════════════════════════════════
-function resetSensors() {
-  ['sBurst','sAir','sVoice'].forEach(id => {
-    const el = document.getElementById(id);
-    el.style.background = 'white';
-    el.style.borderColor = '#e8e0d8';
-  });
+// ════════════════════════════════════════════════
+// LISTEN MODE
+// ════════════════════════════════════════════════
+function newListenItem(){
+  const items=activeGroup.items;
+  listenItem=items[Math.floor(Math.random()*items.length)];
+  // randomly decide which word to play (correct or foil)
+  listenAnswer=Math.random()<0.5?'word':'alt';
+
+  document.getElementById('tgtEmoji').textContent=listenItem.em;
+  document.getElementById('tgtWord').textContent=listenAnswer==='word'?listenItem.word:listenItem.alt;
+  document.getElementById('tgtIPA').textContent='';
+  document.getElementById('tgtHint').textContent=listenItem.hint;
+
+  // Build choice buttons
+  document.getElementById('listenChoices').innerHTML=`
+    <button class="listen-choice" id="choiceWord" onclick="checkListen('word')">${listenItem.word}</button>
+    <button class="listen-choice" id="choiceAlt"  onclick="checkListen('alt')">${listenItem.alt}</button>
+  `;
+  document.getElementById('fbBox').style.display='none';
+  document.getElementById('playBtn').textContent='🔊 播放聲音';
 }
 
-function animateSensors(vot) {
-  const burst = document.getElementById('sBurst');
-  burst.style.background = '#FFF3E0';
-  burst.style.borderColor = '#FF9800';
-  burst.querySelector('.sensor-icon').style.transform = 'scale(1.4)';
-  setTimeout(() => burst.querySelector('.sensor-icon').style.transform = 'scale(1)', 400);
-
-  setTimeout(() => {
-    const air = document.getElementById('sAir');
-    if (vot >= VOT_P_MIN) {
-      air.style.background = '#E3F2FD';
-      air.style.borderColor = '#2196F3';
-      air.querySelector('.sensor-icon').textContent = '💨';
-    } else {
-      air.style.background = '#FFEBEE';
-      air.style.borderColor = '#F44336';
-      air.querySelector('.sensor-icon').textContent = '😮';
-    }
-  }, 200);
-
-  setTimeout(() => {
-    const voice = document.getElementById('sVoice');
-    if (vot <= VOT_B_MAX) {
-      voice.style.background = '#E8F5E9';
-      voice.style.borderColor = '#4CAF50';
-      voice.querySelector('.sensor-icon').textContent = '🎵';
-    } else {
-      voice.style.background = '#fafafa';
-      voice.style.borderColor = '#e8e0d8';
-      voice.querySelector('.sensor-icon').textContent = '🔇';
-    }
-  }, 400);
+function playListenAudio(){
+  // Use Web Speech API to pronounce the word
+  if (!window.speechSynthesis) {
+    document.getElementById('fbBox').className='fb-box warn';
+    document.getElementById('fbBox').style.display='block';
+    document.getElementById('fbBox').textContent='⚠️ 這個瀏覽器不支援語音播放，請用 Safari 或 Chrome。';
+    return;
+  }
+  const word = listenAnswer==='word' ? listenItem.word : listenItem.alt;
+  const utt = new SpeechSynthesisUtterance(word);
+  utt.lang='en-US'; utt.rate=0.85; utt.pitch=1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utt);
+  document.getElementById('playBtn').textContent='🔊 再聽一次';
 }
 
-// ════════════════════════════════════════════════════
-// RECORDING
-// ════════════════════════════════════════════════════
-async function toggleRecord() {
-  if (isRecording) { stopRecord(); return; }
-  try {
-    document.getElementById('micErr').style.display = 'none';
-    // 噪音抑制 + 回聲消除
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: 44100,
-      }
+function checkListen(chosen){
+  const correct = chosen===listenAnswer;
+  totalAttempts++;
+  groupStats[activeGroup.id].attempts++;
+
+  const chosenWord = chosen==='word'?listenItem.word:listenItem.alt;
+  const correctWord= listenAnswer==='word'?listenItem.word:listenItem.alt;
+
+  if(correct){
+    groupStats[activeGroup.id].correct++;
+    correctCount++; streak++; fireCells=Math.min(fireCells+1,10);
+    addScore(10);
+    document.getElementById('choice'+chosen.charAt(0).toUpperCase()+chosen.slice(1)).className='listen-choice correct-ans';
+    setTL('correct','✅ 答對了！耳朵很靈！');
+    showFB('correct',`🎉 答對！你聽出來是「${correctWord}」！太棒了！`,'');
+  } else {
+    streak=0; fireCells=Math.max(fireCells-1,0);
+    document.getElementById('choice'+chosen.charAt(0).toUpperCase()+chosen.slice(1)).className='listen-choice wrong-ans';
+    setTL('error','❌ 再聽一次！');
+    showFB('error',`其實是「${correctWord}」。${listenItem.hint}，再試一次！`,'');
+  }
+
+  updateFire();
+  checkMedals();
+  updateStats();
+  history.push({vot:null,correct});
+
+  // Next item after delay
+  setTimeout(()=>{
+    document.querySelectorAll('.listen-choice').forEach(c=>c.className='listen-choice');
+    newListenItem();
+    setTL(null,'👂 聽聲音，選答案！');
+  }, 1800);
+}
+
+// ════════════════════════════════════════════════
+// RECORDING (VOT mode)
+// ════════════════════════════════════════════════
+async function toggleRecord(){
+  if(isRecording){stopRecord();return;}
+  try{
+    document.getElementById('micErr').style.display='none';
+    const stream=await navigator.mediaDevices.getUserMedia({
+      audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,sampleRate:44100}
     });
-    chunks = [];
-    mediaRecorder = new MediaRecorder(stream);
-    mediaRecorder.ondataavailable = e => { if(e.data.size>0) chunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
+    chunks=[];
+    mediaRecorder=new MediaRecorder(stream);
+    mediaRecorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
+    mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
-      await analyzeVOT(new Blob(chunks, {type:'audio/webm'}));
+      await analyzeVOT(new Blob(chunks,{type:'audio/webm'}));
     };
     mediaRecorder.start();
-    isRecording = true;
-    const btn = document.getElementById('recBtn');
+    isRecording=true;
+    const btn=document.getElementById('recBtn');
     btn.classList.add('recording');
-    btn.style.background = 'linear-gradient(135deg,#F44336,#FF7043)';
-    btn.innerHTML = '⏹️ 停止錄音';
-    setTL(null, '🎙️ 錄音中…說清楚一點！');
-    document.getElementById('simBtn').style.display = 'none';
-  } catch(e) {
-    const err = document.getElementById('micErr');
-    err.style.display = 'block';
-    err.innerHTML = '⚠️ 找不到麥克風。請允許瀏覽器使用麥克風，或點下方「模擬」按鈕試試效果。';
-    document.getElementById('simBtn').style.display = 'block';
+    btn.style.background='linear-gradient(135deg,#F44336,#FF7043)';
+    btn.innerHTML='⏹️ 停止錄音';
+    setTL(null,'🎙️ 錄音中…說清楚一點！');
+    document.getElementById('simBtn').style.display='none';
+  }catch(e){
+    document.getElementById('micErr').style.display='block';
+    document.getElementById('micErr').innerHTML='⚠️ 找不到麥克風。請允許瀏覽器使用麥克風，或點下方「模擬」試試。';
+    document.getElementById('simBtn').style.display='block';
   }
 }
 
-function stopRecord() {
-  if (!mediaRecorder || !isRecording) return;
-  mediaRecorder.stop();
-  isRecording = false;
-  const btn = document.getElementById('recBtn');
+function stopRecord(){
+  if(!mediaRecorder||!isRecording)return;
+  mediaRecorder.stop(); isRecording=false;
+  const btn=document.getElementById('recBtn');
   btn.classList.remove('recording');
-  btn.style.background = 'linear-gradient(135deg,var(--orange),var(--yellow))';
-  btn.innerHTML = `🎙️ 說「<span id="recWord">${activePair.p}</span>」`;
-  setTL(null, '⏳ 分析中…');
+  btn.style.background='linear-gradient(135deg,var(--orange),var(--yellow))';
+  btn.innerHTML=`🎙️ 說「<span id="recWord">${activeGroup.pairs[activePairIdx].p}</span>」`;
+  setTL(null,'⏳ 分析中…');
 }
 
-// ════════════════════════════════════════════════════
-// VOT ANALYSIS（放寬版，適合兒童 + 環境音）
-// ════════════════════════════════════════════════════
-async function analyzeVOT(blob) {
-  try {
-    const buf  = await blob.arrayBuffer();
-    const actx = new (window.AudioContext || window.webkitAudioContext)();
-    const audio = await actx.decodeAudioData(buf);
-    const data  = audio.getChannelData(0);
-    const sr    = audio.sampleRate;
+// ════════════════════════════════════════════════
+// VOT ANALYSIS — 超寬鬆版，環境音大也沒關係
+// ════════════════════════════════════════════════
+async function analyzeVOT(blob){
+  try{
+    const buf=await blob.arrayBuffer();
+    const actx=new(window.AudioContext||window.webkitAudioContext)();
+    const audio=await actx.decodeAudioData(buf);
+    const data=audio.getChannelData(0);
+    const sr=audio.sampleRate;
 
-    // 較大 frame（10ms）對環境音更穩定
-    const fSize = Math.round(sr * 0.010);
-    const energies = [];
-    for (let i=0; i<data.length-fSize; i+=fSize) {
-      let s=0;
-      for (let j=0;j<fSize;j++) s += data[i+j]**2;
+    // 15ms frame，更穩定
+    const fSize=Math.round(sr*0.015);
+    const energies=[];
+    for(let i=0;i<data.length-fSize;i+=fSize){
+      let s=0; for(let j=0;j<fSize;j++) s+=data[i+j]**2;
       energies.push(Math.sqrt(s/fSize));
     }
 
-    // 用中位數當背景噪音基準，比最大值更穩
-    const sorted = [...energies].sort((a,b)=>a-b);
-    const median = sorted[Math.floor(sorted.length/2)];
-    const maxE   = sorted[Math.floor(sorted.length*0.95)]; // 95th percentile
-    // 閾值：比背景噪音高3倍，或最大值的10%，取較大者
-    const thr = Math.max(median * 3, maxE * 0.10);
+    // 排序取背景噪音：用40th percentile當背景，比中位數更寬鬆
+    const sorted=[...energies].sort((a,b)=>a-b);
+    const bgNoise=sorted[Math.floor(sorted.length*0.40)];
+    const peakE  =sorted[Math.floor(sorted.length*0.92)];
 
-    // 找爆破起點
-    let burst = energies.findIndex(e => e > thr);
-    if (burst < 0) { simResult(); return; } // 沒偵測到就模擬
+    // 閾值 = max(背景*2.5, peak*8%) — 環境音大時自動墊高基準
+    const thr=Math.max(bgNoise*2.5, peakE*0.08);
 
-    // 找聲帶起振（在爆破後找到持續高能量區）
-    let voice = burst + 1;
-    for (let i = burst+1; i < energies.length-3; i++) {
-      if (energies[i] > thr * 1.3 &&
-          energies[i+1] > thr &&
-          energies[i+2] > thr * 0.9) {
-        voice = i; break;
-      }
+    let burst=energies.findIndex(e=>e>thr);
+    if(burst<0){simVOT();return;}
+
+    // 聲帶起振：爆破後第一個持續能量段
+    let voice=burst+1;
+    for(let i=burst+1;i<energies.length-3;i++){
+      if(energies[i]>thr*1.2&&energies[i+1]>thr&&energies[i+2]>thr*0.8){voice=i;break;}
     }
 
-    // 每 frame = 10ms
-    const votMs = Math.round((voice - burst) * 10);
-
-    // 合理範圍檢查（太短或太長可能是雜音）
-    if (votMs < 3 || votMs > 300) { simResult(); return; }
-
-    showResult(votMs);
-  } catch(e) {
-    simResult();
-  }
+    // 每 frame=15ms
+    const votMs=Math.round((voice-burst)*15);
+    if(votMs<2||votMs>350){simVOT();return;}
+    showVOTResult(votMs);
+  }catch(e){simVOT();}
 }
 
-// ════════════════════════════════════════════════════
-// SIMULATE（測試用）
-// ════════════════════════════════════════════════════
-function simResult() {
-  const r = Math.random();
+function simVOT(){
+  const r=Math.random();
   let vot;
-  if      (r < 0.50) vot = VOT_P_MIN + Math.round(Math.random() * 70); // correct
-  else if (r < 0.78) vot = 20 + Math.round(Math.random() * 22);         // borderline
-  else               vot = 5  + Math.round(Math.random() * 15);          // error
-  showResult(vot);
+  if(r<0.55) vot=activeGroup.minVOT+Math.round(Math.random()*70);
+  else if(r<0.80) vot=20+Math.round(Math.random()*18);
+  else vot=5+Math.round(Math.random()*14);
+  showVOTResult(vot);
 }
 
-// ════════════════════════════════════════════════════
-// SHOW RESULT
-// ════════════════════════════════════════════════════
-function showResult(vot) {
-  let diag, mainMsg, fbText;
+// ════════════════════════════════════════════════
+// SHOW VOT RESULT
+// ════════════════════════════════════════════════
+function showVOTResult(vot){
+  const g=activeGroup;
+  let diag,mainMsg,fbText;
   totalAttempts++;
+  groupStats[g.id].attempts++;
 
-  if (vot >= VOT_P_MIN && vot <= VOT_P_MAX) {
+  const isCorrect = vot>=g.minVOT && vot<=g.maxVOT;
+  const isOverAsp = vot>g.maxVOT;
+
+  if(isCorrect){
     diag='correct';
-    mainMsg = '✅ 太棒了！送氣正確！';
-    fbText  = `🎉 超讚！你的 /p/ 送氣非常好！氣流很強，VOT ${vot}ms，完全正確！`;
-    fireCells = Math.min(fireCells+1, 10);
+    mainMsg='✅ 太棒了！送氣正確！';
+    fbText=`🎉 超讚！你的 /${g.voiceless}/ 送氣非常好！VOT ${vot}ms，完全正確！`;
+    fireCells=Math.min(fireCells+1,10);
     correctCount++; streak++; addScore(10);
-  } else if (vot > VOT_P_MAX) {
+    groupStats[g.id].correct++;
+    // Next pair
+    activePairIdx=(activePairIdx+1)%g.pairs.length;
+    setTimeout(()=>updateTargetVOT(),1500);
+  } else if(isOverAsp){
     diag='warn';
-    mainMsg = '⚠️ 送氣再輕一點點！';
-    fbText  = `VOT ${vot}ms 有點太長，送氣稍微過強。試著輕一點，讓 /p/ 更自然！`;
-    streak = 0;
+    mainMsg='⚠️ 送氣再輕一點點！';
+    fbText=`VOT ${vot}ms 有點太長，送氣稍微過強。試著輕一點，讓 /${g.voiceless}/ 更自然！`;
+    streak=0;
   } else {
     diag='error';
-    mainMsg = '❌ 再送更多氣！加油！';
-    fbText  = `氣不夠強！VOT 只有 ${vot}ms。想像嘴前有蠟燭，說「${activePair.p}」要把它吹熄！💨`;
-    fireCells = Math.max(fireCells-1, 0);
-    streak = 0;
+    mainMsg='❌ 再送更多氣！加油！';
+    fbText=`氣不夠強！VOT 只有 ${vot}ms。想像嘴前有蠟燭，說「${g.pairs[activePairIdx].p}」要把它吹熄！💨`;
+    fireCells=Math.max(fireCells-1,0);
+    streak=0;
   }
 
-  history.push({ vot, correct: diag==='correct' });
-  if (history.length > 20) history.shift();
-
-  setTL(diag, mainMsg);
+  history.push({vot,correct:isCorrect,groupId:g.id});
+  setTL(diag,mainMsg);
   updateFire();
-  animateSensors(vot);
+  animateSensors(vot,g.minVOT);
   checkMedals();
   updateStats();
-
-  const fb = document.getElementById('fbBox');
-  fb.className = `fb-box fadeup ${diag}`;
-  fb.style.display = 'block';
-  fb.innerHTML = fbText + `<div class="fb-vot">VOT: ${vot}ms</div>`;
+  showFB(diag,fbText,`VOT: ${vot}ms`);
 }
 
-// ════════════════════════════════════════════════════
-// SCORE
-// ════════════════════════════════════════════════════
-function addScore(n) {
-  score += n;
-  const b = document.getElementById('scoreBadge');
-  b.textContent = `⭐ ${score} 分`;
-  b.classList.remove('pop');
-  void b.offsetWidth;
-  b.classList.add('pop');
+// ════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════
+function setTL(diag,msg){
+  document.getElementById('tlR').classList.toggle('on',diag==='error');
+  document.getElementById('tlY').classList.toggle('on',diag==='warn');
+  document.getElementById('tlG').classList.toggle('on',diag==='correct');
+  document.getElementById('tlMsg').textContent=msg||(
+    diag==='correct'?'✅ 太棒了！':diag==='warn'?'⚠️ 再試一次！':diag==='error'?'❌ 加油！':''
+  );
 }
 
-// ════════════════════════════════════════════════════
-// MEDALS
-// ════════════════════════════════════════════════════
-function checkMedals() {
-  if (correctCount>=1  && !medals[0]) { medals[0]=true; unlockMedal(0); }
-  if (streak>=3        && !medals[1]) { medals[1]=true; unlockMedal(1); }
-  if (streak>=5        && !medals[2]) { medals[2]=true; unlockMedal(2); }
-  if (score>=100       && !medals[3]) { medals[3]=true; unlockMedal(3); }
-  if (triedPairs.size>=PAIRS.length && !medals[4]) { medals[4]=true; unlockMedal(4); }
-}
-function unlockMedal(i) {
-  const m = document.getElementById('m'+i);
-  m.classList.add('won');
+function showFB(diag,text,sub){
+  const fb=document.getElementById('fbBox');
+  fb.className=`fb-box fadeup ${diag}`;
+  fb.style.display='block';
+  fb.innerHTML=text+(sub?`<div class="fb-vot">${sub}</div>`:'');
 }
 
-// ════════════════════════════════════════════════════
-// STATS & ACHIEVEMENTS
-// ════════════════════════════════════════════════════
-function updateStats() {
-  document.getElementById('stTotal').textContent   = totalAttempts;
-  document.getElementById('stCorrect').textContent = correctCount;
-  document.getElementById('stStreak').textContent  = streak;
+function addScore(n){
+  score+=n;
+  const b=document.getElementById('scoreBadge');
+  b.textContent=`⭐ ${score} 分`;
+  b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
 }
 
-function updateAchievements() {
+function resetSensors(){
+  ['sBurst','sAir','sVoice'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.style.background='white'; el.style.borderColor='#e8e0d8';
+  });
+}
+
+function animateSensors(vot,minVOT){
+  const burst=document.getElementById('sBurst');
+  burst.style.background='#FFF3E0'; burst.style.borderColor='#FF9800';
+  burst.querySelector('.sensor-icon').style.transform='scale(1.4)';
+  setTimeout(()=>burst.querySelector('.sensor-icon').style.transform='scale(1)',400);
+  setTimeout(()=>{
+    const air=document.getElementById('sAir');
+    air.style.background=vot>=minVOT?'#E3F2FD':'#FFEBEE';
+    air.style.borderColor=vot>=minVOT?'#2196F3':'#F44336';
+    air.querySelector('.sensor-icon').textContent=vot>=minVOT?'💨':'😮';
+  },200);
+  setTimeout(()=>{
+    const voice=document.getElementById('sVoice');
+    voice.style.background=vot<=40?'#E8F5E9':'#fafafa';
+    voice.style.borderColor=vot<=40?'#4CAF50':'#e8e0d8';
+    voice.querySelector('.sensor-icon').textContent=vot<=40?'🎵':'🔇';
+  },400);
+}
+
+function updateFire(){
+  for(let i=0;i<10;i++){
+    const c=document.getElementById('fc'+i);
+    if(!c)continue;
+    c.className='fire-cell'+(i<fireCells?(fireCells>=10?' lit lit-all':' lit'):'');
+  }
+  document.getElementById('fireCount').textContent=fireCells;
+  const win=document.getElementById('winMsg'),castle=document.getElementById('castleEm');
+  if(fireCells>=10){win.style.display='block';castle.classList.add('win');}
+  else{win.style.display='none';castle.classList.remove('win');}
+}
+
+function checkMedals(){
+  if(correctCount>=1  &&!medals[0]){medals[0]=true;document.getElementById('m0').classList.add('won');}
+  if(streak>=3        &&!medals[1]){medals[1]=true;document.getElementById('m1').classList.add('won');}
+  if(streak>=5        &&!medals[2]){medals[2]=true;document.getElementById('m2').classList.add('won');}
+  if(score>=100       &&!medals[3]){medals[3]=true;document.getElementById('m3').classList.add('won');}
+  if(triedGroups.size>=4&&!medals[4]){medals[4]=true;document.getElementById('m4').classList.add('won');}
+  if(triedGroups.size>=[...VOT_GROUPS,...LISTEN_GROUPS].length&&!medals[5]){medals[5]=true;document.getElementById('m5').classList.add('won');}
+}
+
+function updateStats(){
+  document.getElementById('stTotal').textContent=totalAttempts;
+  document.getElementById('stCorrect').textContent=correctCount;
+  document.getElementById('stStreak').textContent=streak;
+  document.getElementById('stGroups').textContent=triedGroups.size;
+}
+
+// ════════════════════════════════════════════════
+// ACHIEVEMENTS TAB
+// ════════════════════════════════════════════════
+function updateAchievements(){
   updateStats();
-  // VOT history bars
-  const hist = document.getElementById('votHist');
-  if (history.length === 0) return;
-  hist.innerHTML = history.map(h => {
-    const pct = Math.min(h.vot/150*100, 100);
-    const col = h.correct ? 'var(--green)' : 'var(--red)';
-    return `<div class="vot-hist-bar" style="flex:1;height:${Math.max(pct*70/100,4)}px;background:${col};box-shadow:0 0 6px ${col}55"></div>`;
+  const hist=document.getElementById('votHist');
+  const votHistory=history.filter(h=>h.vot!==null);
+  if(votHistory.length===0)return;
+  hist.innerHTML=votHistory.map(h=>{
+    const pct=Math.min(h.vot/150*100,100);
+    const col=h.correct?'var(--green)':'var(--red)';
+    return `<div style="flex:1;border-radius:4px;height:${Math.max(pct*60/100,4)}px;background:${col};box-shadow:0 0 6px ${col}55;transition:height .4s"></div>`;
   }).join('');
-  // accuracy
-  const acc = totalAttempts > 0 ? Math.round(correctCount/totalAttempts*100) : 0;
-  document.getElementById('accPct').textContent = acc + '%';
-  document.getElementById('accBar').style.width = acc + '%';
+  const acc=totalAttempts>0?Math.round(correctCount/totalAttempts*100):0;
+  document.getElementById('accPct').textContent=acc+'%';
+  document.getElementById('accBar').style.width=acc+'%';
 }
 
-// ════════════════════════════════════════════════════
-// TEACHER VIEW
-// ════════════════════════════════════════════════════
-function updateTeacher() {
-  document.getElementById('tTotal').textContent = totalAttempts;
-  document.getElementById('tScore').textContent = score;
-  document.getElementById('tAcc').textContent   = totalAttempts>0 ? Math.round(correctCount/totalAttempts*100)+'%' : '—';
+// ════════════════════════════════════════════════
+// RADAR CHART
+// ════════════════════════════════════════════════
+function drawRadar(){
+  const canvas=document.getElementById('radarCanvas');
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  ctx.clearRect(0,0,W,H);
 
-  // VOT bar (last 10)
-  const recent = history.slice(-10);
-  const tBar = document.getElementById('tVotBar');
-  if (recent.length === 0) {
-    tBar.innerHTML = '<div style="color:rgba(255,255,255,.3);font-size:11px;font-weight:700;width:100%;text-align:center;align-self:center">尚無數據</div>';
+  const allGroups=[...VOT_GROUPS,...LISTEN_GROUPS];
+  const N=allGroups.length;
+  const cx=W/2, cy=H/2, R=Math.min(W,H)*0.38;
+  const labels=allGroups.map(g=>g.label);
+  const colors=allGroups.map(g=>g.color);
+  const values=allGroups.map(g=>{
+    const s=groupStats[g.id];
+    return s.attempts>0?s.correct/s.attempts:0;
+  });
+
+  // Background rings
+  ctx.strokeStyle='rgba(255,255,255,.08)';
+  [0.25,0.5,0.75,1.0].forEach(r=>{
+    ctx.beginPath();
+    for(let i=0;i<N;i++){
+      const a=i*2*Math.PI/N-Math.PI/2;
+      const x=cx+r*R*Math.cos(a), y=cy+r*R*Math.sin(a);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath(); ctx.stroke();
+  });
+
+  // Axes
+  ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1;
+  for(let i=0;i<N;i++){
+    const a=i*2*Math.PI/N-Math.PI/2;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.lineTo(cx+R*Math.cos(a),cy+R*Math.sin(a));
+    ctx.stroke();
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  for(let i=0;i<N;i++){
+    const a=i*2*Math.PI/N-Math.PI/2;
+    const v=values[i];
+    const x=cx+v*R*Math.cos(a), y=cy+v*R*Math.sin(a);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.closePath();
+  ctx.fillStyle='rgba(0,255,136,.18)'; ctx.fill();
+  ctx.strokeStyle='#00ff88'; ctx.lineWidth=2.5; ctx.stroke();
+
+  // Dots
+  for(let i=0;i<N;i++){
+    const a=i*2*Math.PI/N-Math.PI/2;
+    const v=values[i];
+    const x=cx+v*R*Math.cos(a), y=cy+v*R*Math.sin(a);
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+    ctx.fillStyle=v>0.7?'#00ff88':v>0.4?'#FFD93D':'#ff4444';
+    ctx.fill();
+  }
+
+  // Labels
+  ctx.font='bold 13px Nunito,sans-serif';
+  for(let i=0;i<N;i++){
+    const a=i*2*Math.PI/N-Math.PI/2;
+    const lx=cx+(R+28)*Math.cos(a), ly=cy+(R+28)*Math.sin(a);
+    ctx.fillStyle=colors[i]||'rgba(255,255,255,.8)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(labels[i],lx,ly);
+  }
+
+  // Legend
+  const leg=document.getElementById('radarLegend');
+  leg.innerHTML=allGroups.map((g,i)=>{
+    const s=groupStats[g.id];
+    const acc=s.attempts>0?Math.round(s.correct/s.attempts*100):0;
+    return `<div class="radar-leg-item">
+      <div class="radar-leg-dot" style="background:${acc>70?'var(--green)':acc>40?'var(--amber)':'var(--red)'}"></div>
+      <span style="color:rgba(255,255,255,.8)">${g.label}: ${acc}%</span>
+    </div>`;
+  }).join('');
+
+  // Stats list
+  document.getElementById('radarStats').innerHTML=allGroups.map(g=>{
+    const s=groupStats[g.id];
+    const acc=s.attempts>0?Math.round(s.correct/s.attempts*100):0;
+    const col=acc>70?'var(--green)':acc>40?'var(--amber)':'var(--red)';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f5f5f5">
+      <span style="font-size:12px;font-weight:800;color:#555">${g.emoji} ${g.label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:10px;color:#bbb;font-weight:700">${s.attempts}次</span>
+        <span style="font-size:14px;font-weight:900;color:${col}">${s.attempts>0?acc+'%':'—'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Advice
+  const weakest=allGroups.filter(g=>groupStats[g.id].attempts>0).sort((a,b)=>{
+    const ra=groupStats[a.id].correct/(groupStats[a.id].attempts||1);
+    const rb=groupStats[b.id].correct/(groupStats[b.id].attempts||1);
+    return ra-rb;
+  });
+  const advEl=document.getElementById('radarAdvice');
+  if(weakest.length===0){
+    advEl.textContent='先去練習，這裡會告訴你哪個音最需要加強！';
   } else {
-    tBar.innerHTML = recent.map(h => {
-      const pct = Math.min(h.vot/150*100, 100);
-      const c = h.correct ? 'var(--green)' : 'var(--red)';
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div style="font-size:8px;color:${c};font-weight:700">${h.vot}</div>
-        <div style="width:100%;height:${Math.max(pct*50/100,4)}px;background:${c};border-radius:3px;box-shadow:0 0 4px ${c}55"></div>
-      </div>`;
-    }).join('');
+    const w=weakest[0];
+    const acc=Math.round(groupStats[w.id].correct/groupStats[w.id].attempts*100);
+    advEl.innerHTML=`最需要加強：<strong style="color:var(--orange)">${w.emoji} ${w.label}</strong>（正確率 ${acc}%）<br>多練習這個音組，雷達圖就會變大！`;
   }
+}
 
-  // Error breakdown
-  const deasp  = history.filter(h=>!h.correct && h.vot < VOT_P_MIN).length;
-  const overAsp= history.filter(h=>!h.correct && h.vot > VOT_P_MAX).length;
-  const errEl  = document.getElementById('errAnalysis');
-  if (totalAttempts === 0) {
-    errEl.innerHTML = '<div style="font-size:13px;color:#bbb;font-weight:700;text-align:center;padding:16px">尚無數據，請先練習</div>';
-    return;
-  }
-  errEl.innerHTML = [
-    { label:'✅ 正確發音', sub:'VOT 45–140ms，送氣充足', count:correctCount, color:'var(--green)', bg:'#E8F5E920' },
-    { label:'❌ 失氣化偏誤', sub:'VOT < 45ms，送氣不足，/p/聽起來像/b/', count:deasp, color:'var(--red)', bg:'#F4433620' },
-    { label:'⚠️ 過度送氣', sub:'VOT > 140ms，送氣略強', count:overAsp, color:'var(--amber)', bg:'#FFC10720' },
+// ════════════════════════════════════════════════
+// TEACHER TAB
+// ════════════════════════════════════════════════
+function updateTeacher(){
+  document.getElementById('tTotal').textContent=totalAttempts;
+  document.getElementById('tScore').textContent=score;
+  document.getElementById('tAcc').textContent=totalAttempts>0?Math.round(correctCount/totalAttempts*100)+'%':'—';
+
+  const allGroups=[...VOT_GROUPS,...LISTEN_GROUPS];
+  document.getElementById('tGroupStats').innerHTML=allGroups.map(g=>{
+    const s=groupStats[g.id];
+    const acc=s.attempts>0?Math.round(s.correct/s.attempts*100):null;
+    const col=acc===null?'#ccc':acc>70?'var(--green)':acc>40?'var(--amber)':'var(--red)';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f5f5f5">
+      <div>
+        <div style="font-size:13px;font-weight:800">${g.emoji} ${g.label}</div>
+        <div style="font-size:10px;color:#aaa;font-weight:700">${s.attempts} 次練習</div>
+      </div>
+      <div style="font-size:18px;font-weight:900;color:${col}">${acc!==null?acc+'%':'未練習'}</div>
+    </div>`;
+  }).join('');
+
+  const votHist=history.filter(h=>h.vot!==null);
+  const deasp=votHist.filter(h=>!h.correct&&h.vot<35).length;
+  const overAsp=votHist.filter(h=>!h.correct&&h.vot>150).length;
+  const listenErr=history.filter(h=>h.vot===null&&!h.correct).length;
+
+  const errEl=document.getElementById('errAnalysis');
+  if(totalAttempts===0){errEl.innerHTML='<div style="font-size:13px;color:#bbb;font-weight:700;text-align:center;padding:16px">尚無數據</div>';return;}
+  errEl.innerHTML=[
+    {label:'✅ 正確發音',sub:'VOT 或聽音辨別正確',count:correctCount,color:'var(--green)',bg:'#E8F5E920'},
+    {label:'❌ 失氣化偏誤',sub:'VOT < 35ms，清音送氣不足',count:deasp,color:'var(--red)',bg:'#F4433620'},
+    {label:'⚠️ 過度送氣',sub:'VOT > 150ms，送氣略強',count:overAsp,color:'var(--amber)',bg:'#FFC10720'},
+    {label:'👂 聽音辨別錯誤',sub:'摩擦音聽辨選錯',count:listenErr,color:'#1565C0',bg:'#E3F2FD'},
   ].map(e=>`
     <div class="err-row" style="background:${e.bg};border-color:${e.color}">
-      <div class="err-row-text">
-        <div class="lbl" style="color:${e.color}">${e.label}</div>
-        <div class="sub">${e.sub}</div>
-      </div>
-      <div class="err-count" style="color:${e.color}">${e.count}</div>
+      <div><div style="font-size:13px;font-weight:800;color:${e.color}">${e.label}</div><div style="font-size:10px;color:#888;font-weight:700;margin-top:2px">${e.sub}</div></div>
+      <div style="font-size:26px;font-weight:900;color:${e.color}">${e.count}</div>
     </div>
   `).join('');
 }
 
-// ════════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// BUILD FIRE TRACK
+// ════════════════════════════════════════════════
+function buildFireTrack(){
+  document.getElementById('fireTrack').innerHTML=
+    Array.from({length:10}).map((_,i)=>`<div class="fire-cell" id="fc${i}"></div>`).join('');
+}
+
+// ════════════════════════════════════════════════
 // INIT
-// ════════════════════════════════════════════════════
-window.addEventListener('load', () => {
-  buildPairGrid();
+// ════════════════════════════════════════════════
+window.addEventListener('load',()=>{
+  buildGroupSelectors();
   buildFireTrack();
-  triedPairs.add(0);
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    document.getElementById('simBtn').style.display = 'block';
+  // Pre-select first VOT group
+  selectGroup('vot','pb',document.querySelector('.sg-vot'));
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    document.getElementById('simBtn').style.display='block';
   }
 });
 </script>
