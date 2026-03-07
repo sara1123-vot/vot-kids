@@ -192,10 +192,8 @@ canvas#radarCanvas{display:block}
     <!-- 音組選擇 -->
     <div class="card">
       <div class="sec-title">選音組 🎯</div>
-      <div style="font-size:10px;font-weight:800;color:var(--purple);margin-bottom:6px">🎤 VOT 發音分析</div>
-      <div class="sg-grid" id="sgVOT"></div>
-      <div style="font-size:10px;font-weight:800;color:var(--teal);margin:10px 0 6px">👂 聽音辨別練習</div>
-      <div class="sg-grid" id="sgListen"></div>
+      <div class="sg-grid" id="sgVOT" style="grid-template-columns:1fr 1fr"></div>
+      <div id="sgListen" style="display:none"></div>
     </div>
 
     <!-- 目標字 -->
@@ -204,6 +202,7 @@ canvas#radarCanvas{display:block}
       <div class="target-word" id="tgtWord">Pig</div>
       <div class="target-ipa"  id="tgtIPA">/pɪg/</div>
       <div class="target-hint" id="tgtHint">練習 /p/ 的送氣！</div>
+      <div id="tgtNote" style="display:none;margin-top:6px;background:#E0F2F1;color:#00695C;font-size:12px;font-weight:900;padding:4px 12px;border-radius:10px"></div>
       <span class="mode-badge" id="modeBadge" style="display:none"></span>
     </div>
 
@@ -239,9 +238,14 @@ canvas#radarCanvas{display:block}
 
     <!-- VOT 模式 -->
     <div id="votMode">
+      <div style="background:#FFF3E0;border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#E65100;display:flex;align-items:center;gap:8px">
+        <span style="font-size:20px">💡</span>
+        <span>只要說<strong>第一個音</strong>就好！說「<strong id="initHint">P…</strong>」停下來，1.2秒自動分析</span>
+      </div>
       <button class="btn-rec" id="recBtn" onclick="toggleRecord()">
         🎙️ 說「<span id="recWord">Pig</span>」
       </button>
+      <div id="recCountdown" style="display:none;text-align:center;font-size:13px;font-weight:800;color:#F44336;margin-top:6px;animation:pulse 1s infinite"></div>
       <button class="btn-sim" id="simBtn" onclick="simVOT()">🎲 模擬發音（測試用）</button>
       <div class="mic-error" id="micErr"></div>
     </div>
@@ -444,79 +448,216 @@ canvas#radarCanvas{display:block}
 <script>
 // ════════════════════════════════════════════════
 // SOUND GROUPS DATA
+// 分四段：雙唇音 / 齒槽音 / 軟顎音 / 混合挑戰
 // ════════════════════════════════════════════════
+
+// ── VOT 發音組（爆破清音 vs 濁音）──
 const VOT_GROUPS = [
+
+  // ── 雙唇音：字首組 ──
   {
-    id:'pb', label:'/p/ vs /b/', emoji:'🐷', color:'#7B1FA2', colorL:'#F3E5F5',
+    id:'pb_i', segment:'bilabial', segLabel:'雙唇音', emoji:'🐷',
+    label:'/p/ vs /b/ 字首', color:'#7B1FA2', colorL:'#F3E5F5',
+    position:'initial',
     pairs:[
-      {p:'Pig', b:'Big', em:'🐷', ipa:'/pɪg/'},
-      {p:'Pat', b:'Bat', em:'🦇', ipa:'/pæt/'},
-      {p:'Pin', b:'Bin', em:'📌', ipa:'/pɪn/'},
-      {p:'Pull',b:'Bull',em:'🐂', ipa:'/pʊl/'},
+      {p:'Pig',  b:'Big',  em:'🐷', ipa:'/pɪg/'},
+      {p:'Pat',  b:'Bat',  em:'🦇', ipa:'/pæt/'},
+      {p:'Pin',  b:'Bin',  em:'📌', ipa:'/pɪn/'},
+      {p:'Pen',  b:'Ben',  em:'✏️', ipa:'/pɛn/'},
+      {p:'Pit',  b:'Bit',  em:'💡', ipa:'/pɪt/'},
+      {p:'Pull', b:'Bull', em:'🐂', ipa:'/pʊl/'},
     ],
-    hint:'說清楚 /p/ 要有強烈送氣！',
+    hint:'字首 /p/，嘴唇爆開時要有強氣流！',
+    articulatoryHint:'👄 雙唇合起來，爆開時吹出強氣！',
     voiceless:'p', minVOT:35, maxVOT:150,
   },
+
+  // ── 雙唇音：字尾組 ──
   {
-    id:'td', label:'/t/ vs /d/', emoji:'🦷', color:'#1565C0', colorL:'#E3F2FD',
+    id:'pb_f', segment:'bilabial', segLabel:'雙唇音', emoji:'🏁',
+    label:'/p/ vs /b/ 字尾', color:'#AB47BC', colorL:'#F3E5F5',
+    position:'final',
     pairs:[
-      {p:'Ten', b:'Den', em:'🔟', ipa:'/tɛn/'},
-      {p:'Tip', b:'Dip', em:'💧', ipa:'/tɪp/'},
-      {p:'Tan', b:'Dan', em:'🌊', ipa:'/tæn/'},
-      {p:'Town',b:'Down',em:'🏙️',ipa:'/taʊn/'},
+      {p:'Cap',  b:'Cab',  em:'🧢', ipa:'/-æp/ vs /-æb/'},
+      {p:'Cup',  b:'Cub',  em:'🐻', ipa:'/-ʌp/ vs /-ʌb/'},
+      {p:'Map',  b:'Cab',  em:'🗺️', ipa:'/-æp/'},
+      {p:'Mop',  b:'Mob',  em:'🧹', ipa:'/-ɒp/ vs /-ɒb/'},
+      {p:'Rip',  b:'Rib',  em:'🦴', ipa:'/-ɪp/ vs /-ɪb/'},
+      {p:'Rope', b:'Robe', em:'👘', ipa:'/-oʊp/ vs /-oʊb/'},
     ],
-    hint:'說 /t/ 舌頭要快速彈開，氣流強！',
+    hint:'字尾 /p/ 嘴唇閉合後要有輕微氣流，/b/ 聲帶有振動！',
+    articulatoryHint:'👄 注意字尾，/p/ 要輕吐氣，/b/ 有振動',
+    voiceless:'p', minVOT:20, maxVOT:120,
+  },
+
+  // ── 齒槽音 ──
+  {
+    id:'td', segment:'alveolar', segLabel:'齒槽音', emoji:'🦷',
+    label:'/t/ vs /d/', color:'#1565C0', colorL:'#E3F2FD',
+    pairs:[
+      {p:'Ten',  b:'Den',  em:'🔟', ipa:'/tɛn/'},
+      {p:'Tip',  b:'Dip',  em:'💧', ipa:'/tɪp/'},
+      {p:'Tan',  b:'Dan',  em:'🌊', ipa:'/tæn/'},
+      {p:'Tie',  b:'Die',  em:'👔', ipa:'/taɪ/'},
+      {p:'Town', b:'Down', em:'🏙️', ipa:'/taʊn/'},
+      {p:'Time', b:'Dime', em:'⏰', ipa:'/taɪm/'},
+    ],
+    hint:'舌尖頂住上牙齦，爆開時氣流要強！',
+    articulatoryHint:'👅 舌尖頂牙齦，彈開時吹氣！',
     voiceless:'t', minVOT:35, maxVOT:150,
   },
+
+  // ── 軟顎音：c/g 組（c 開頭，c = /k/）──
   {
-    id:'kg', label:'/k/ vs /g/', emoji:'🐱', color:'#00695C', colorL:'#E0F2F1',
+    id:'cg', segment:'velar', segLabel:'軟顎音', emoji:'🐱',
+    label:'c vs g（c = /k/）', color:'#00695C', colorL:'#E0F2F1',
     pairs:[
-      {p:'Cat', b:'Gap', em:'🐱', ipa:'/kæt/'},
-      {p:'Cap', b:'Gap', em:'🧢', ipa:'/kæp/'},
-      {p:'Coat',b:'Goat',em:'🐐', ipa:'/koʊt/'},
-      {p:'Kay', b:'Gay', em:'🔑', ipa:'/keɪ/'},
+      {p:'Cat',  b:'Gap',  em:'🐱', ipa:'/kæt/',  note:'c = /k/'},
+      {p:'Cup',  b:'Gum',  em:'☕', ipa:'/kʌp/',  note:'c = /k/'},
+      {p:'Coat', b:'Goat', em:'🐐', ipa:'/koʊt/', note:'c = /k/'},
+      {p:'Cave', b:'Gave', em:'🏔️', ipa:'/keɪv/', note:'c = /k/'},
+      {p:'Cord', b:'Gored',em:'🎶', ipa:'/kɔːrd/', note:'c = /k/'},
+      {p:'Cool', b:'Ghoul',em:'😎', ipa:'/kuːl/', note:'c = /k/'},
     ],
-    hint:'說 /k/ 舌根要用力，氣從喉嚨衝出！',
+    hint:'c 開頭全部唸 /k/！舌根用力，氣從喉嚨衝出！',
+    articulatoryHint:'👅 舌根往後頂，氣從喉嚨爆出！c = /k/ 記住！',
+    voiceless:'k', minVOT:35, maxVOT:160,
+  },
+
+  // ── 軟顎音：k/g 組（k 開頭）──
+  {
+    id:'kg', segment:'velar', segLabel:'軟顎音', emoji:'👑',
+    label:'k vs g', color:'#2E7D32', colorL:'#E8F5E9',
+    pairs:[
+      {p:'King', b:'Ging', em:'👑', ipa:'/kɪŋ/'},
+      {p:'Key',  b:'Gee',  em:'🔑', ipa:'/kiː/'},
+      {p:'Kit',  b:'Git',  em:'🧰', ipa:'/kɪt/'},
+      {p:'Ken',  b:'Gen',  em:'🧑', ipa:'/kɛn/'},
+      {p:'Keep', b:'Geep', em:'🐏', ipa:'/kiːp/'},
+      {p:'Kill', b:'Gill', em:'🐟', ipa:'/kɪl/'},
+    ],
+    hint:'k 開頭，舌根往後頂，氣從喉嚨衝出！',
+    articulatoryHint:'👅 舌根用力頂，爆破時強氣！',
     voiceless:'k', minVOT:35, maxVOT:160,
   },
 ];
 
+// ── 聽音辨別組（摩擦音 / 破擦音）──
 const LISTEN_GROUPS = [
+  // 齒槽音
   {
-    id:'chj', label:'ch vs j', emoji:'🚂', color:'#E65100', colorL:'#FFF3E0',
+    id:'sz', segment:'alveolar', segLabel:'齒槽音', emoji:'🐝',
+    label:'s vs z', color:'#F9A825', colorL:'#FFFDE7',
     items:[
-      {word:'Chin', alt:'Gin',   em:'🧒', sound:'chin', hint:'ch 像火車「嘰」的聲音'},
-      {word:'Cheap',alt:'Jeep',  em:'🚙', sound:'cheap',hint:'ch 嘴巴要噘起來'},
-      {word:'Cheer',alt:'Jeer',  em:'🎉', sound:'cheer',hint:'ch 是清音，j 是濁音'},
-      {word:'Chain',alt:'Jane',  em:'⛓️', sound:'chain',hint:'先聽氣流，再選答案'},
+      // 字首
+      {word:'Sip',   alt:'Zip',   em:'🤐', hint:'s 清音無振動，z 濁音有振動'},
+      {word:'Sue',   alt:'Zoo',   em:'🦁', hint:'聽摩擦音是否有聲帶振動'},
+      {word:'Seal',  alt:'Zeal',  em:'🦭', hint:'s 和 z 嘴型一樣，只差振動'},
+      {word:'Sap',   alt:'Zap',   em:'⚡', hint:'仔細聽聲帶有無振動'},
+      // 字中/字尾
+      {word:'Racer', alt:'Razor', em:'🪒', hint:'字中的 s vs z，聽清楚'},
+      {word:'Bus',   alt:'Buzz',  em:'🚌', hint:'字尾 s 清音，z 濁音'},
     ],
   },
   {
-    id:'shs', label:'sh vs s', emoji:'🐍', color:'#558B2F', colorL:'#F1F8E9',
+    id:'shs', segment:'alveolar', segLabel:'齒槽音', emoji:'🐍',
+    label:'sh /ʃ/ vs zh /ʒ/', color:'#558B2F', colorL:'#F1F8E9',
     items:[
-      {word:'Ship', alt:'Sip',  em:'🚢', sound:'ship', hint:'sh 嘴型噘起來，s 嘴巴扁扁'},
-      {word:'Shop', alt:'Sop',  em:'🏪', sound:'shop', hint:'sh 像靜音「噓」'},
-      {word:'Sheet',alt:'Seat', em:'📄', sound:'sheet',hint:'聽摩擦音的位置'},
-      {word:'Show', alt:'Sow',  em:'🎪', sound:'show', hint:'sh 比 s 悶一點'},
+      // 字首（/ʒ/ 字首極少，用 genre/sure 這類）
+      {word:'Sure',    alt:'Azure',   em:'💎', hint:'sure /ʃ/ 清音，azure /ʒ/ 濁音'},
+      {word:'Shin',    alt:'Genre',   em:'🎬', hint:'shin /ʃ/ 清音，genre /ʒ/ 濁音'},
+      // 字中
+      {word:'Glacier', alt:'Measure', em:'🌊', hint:'glacier /ʃ/ 清音，measure /ʒ/ 濁音'},
+      {word:'Action',  alt:'Vision',  em:'👁️', hint:'-tion /ʃ/，-sion /ʒ/'},
+      // 字尾
+      {word:'Leash',   alt:'Beige',   em:'🐕', hint:'leash /ʃ/ 清音，beige /ʒ/ 濁音'},
+      {word:'Rush',    alt:'Rouge',   em:'💄', hint:'rush /ʃ/ 清音，rouge /ʒ/ 濁音'},
     ],
   },
   {
-    id:'fv', label:'f vs v', emoji:'🦋', color:'#AD1457', colorL:'#FCE4EC',
+    id:'chj', segment:'alveolar', segLabel:'齒槽音', emoji:'🚂',
+    label:'ch vs j', color:'#E65100', colorL:'#FFF3E0',
     items:[
-      {word:'Fan',  alt:'Van',  em:'🌀', sound:'fan',  hint:'f 無聲，v 聲帶振動'},
-      {word:'Fine', alt:'Vine', em:'🍇', sound:'fine', hint:'手放喉嚨感受振動'},
-      {word:'Fail', alt:'Veil', em:'💍', sound:'fail', hint:'f 和 v 嘴型一樣'},
-      {word:'Few',  alt:'View', em:'👁️', sound:'few',  hint:'f 是清音，v 是濁音'},
+      // 字首
+      {word:'Chew',  alt:'Jew',   em:'🦷', hint:'ch 清音 /tʃ/，j 濁音 /dʒ/'},
+      {word:'Chip',  alt:'Jip',   em:'🍟', hint:'ch 嘴巴前噘，氣流衝出'},
+      {word:'Chain', alt:'Jane',  em:'⛓️', hint:'ch 是清音，j 是濁音'},
+      {word:'Cheap', alt:'Jeep',  em:'🚙', hint:'先聽氣流，再看振動'},
+      // 字中/字尾
+      {word:'Rich',  alt:'Ridge', em:'⛰️', hint:'字尾 ch 清音，-dge 濁音'},
+      {word:'Much',  alt:'Budge', em:'🏋️', hint:'字尾 ch /tʃ/ vs -dge /dʒ/'},
     ],
   },
   {
-    id:'sz', label:'s vs z', emoji:'🐝', color:'#F9A825', colorL:'#FFFDE7',
+    id:'fv', segment:'labiodental', segLabel:'唇齒音', emoji:'🦋',
+    label:'f vs v', color:'#AD1457', colorL:'#FCE4EC',
     items:[
-      {word:'Sip',  alt:'Zip',  em:'🤐', sound:'sip',  hint:'z 比 s 多了聲帶振動'},
-      {word:'Sue',  alt:'Zoo',  em:'🦁', sound:'sue',  hint:'聽摩擦音是否有振動'},
-      {word:'Seal', alt:'Zeal', em:'🦭', sound:'seal', hint:'s 和 z 嘴型一樣'},
-      {word:'Sap',  alt:'Zap',  em:'⚡', sound:'sap',  hint:'仔細聽聲帶有無振動'},
+      {word:'Fan',   alt:'Van',   em:'🌀', hint:'f 無聲，v 聲帶振動'},
+      {word:'Fine',  alt:'Vine',  em:'🍇', hint:'手放喉嚨感受 v 的振動'},
+      {word:'Fail',  alt:'Veil',  em:'💍', hint:'f 和 v 嘴型一樣，牙咬下唇'},
+      {word:'Few',   alt:'View',  em:'👁️', hint:'f 清音，v 濁音'},
+      {word:'Leaf',  alt:'Leave', em:'🍃', hint:'字尾 f 清音，v 濁音'},
+      {word:'Safe',  alt:'Save',  em:'🔒', hint:'字尾 f vs v，聽振動'},
     ],
+  },
+  {
+    id:'th', segment:'dental', segLabel:'齒音', emoji:'👅',
+    label:'th(θ) vs th(ð)', color:'#6A1B9A', colorL:'#F3E5F5',
+    items:[
+      {word:'Think', alt:'This',  em:'🤔', hint:'think 舌頭輕咬牙齒，氣流衝出'},
+      {word:'Three', alt:'The',   em:'3️⃣', hint:'three 清音 θ，the 濁音 ð'},
+      {word:'Thumb', alt:'There', em:'👍', hint:'thumb 無振動，there 有振動'},
+      {word:'Thin',  alt:'Then',  em:'📏', hint:'thin 清音 θ，then 濁音 ð'},
+      {word:'Bath',  alt:'Bathe', em:'🛁', hint:'字尾 th 清音，-the 濁音'},
+      {word:'Teeth', alt:'Teethe',em:'🦷', hint:'teeth 清音，teethe 濁音'},
+    ],
+  },
+];
+
+// ── 混合挑戰組（從已練過的題組抽題）──
+// MIXED_CHALLENGE 在 runtime 動態生成
+
+// ── 四個段落定義 ──
+const SEGMENTS = [
+  {
+    id:'bilabial',
+    label:'雙唇音',
+    emoji:'👄',
+    desc:'p vs b — 雙唇閉合爆破',
+    color:'#7B1FA2',
+    colorL:'#F3E5F5',
+    votIds:['pb_i','pb_f'],
+    listenIds:[],
+  },
+  {
+    id:'alveolar',
+    label:'齒槽音',
+    emoji:'🦷',
+    desc:'t/d、s/z、sh/s、ch/j',
+    color:'#1565C0',
+    colorL:'#E3F2FD',
+    votIds:['td'],
+    listenIds:['sz','shs','chj'],
+  },
+  {
+    id:'velar',
+    label:'軟顎音',
+    emoji:'👅',
+    desc:'c/k vs g — 軟顎爆破',
+    color:'#00695C',
+    colorL:'#E0F2F1',
+    votIds:['cg','kg'],
+    listenIds:[],
+  },
+  {
+    id:'mixed',
+    label:'混合挑戰',
+    emoji:'🌈',
+    desc:'全部音組隨機出題',
+    color:'#E65100',
+    colorL:'#FFF3E0',
+    votIds:['pb_i','pb_f','td','cg','kg'],
+    listenIds:['sz','shs','chj','fv','th'],
   },
 ];
 
@@ -553,24 +694,85 @@ function switchTab(i,btn){
 }
 
 // ════════════════════════════════════════════════
-// BUILD GROUP SELECTORS
+// BUILD GROUP SELECTORS — 四段式
 // ════════════════════════════════════════════════
 function buildGroupSelectors(){
-  document.getElementById('sgVOT').innerHTML = VOT_GROUPS.map((g,i)=>`
-    <button class="sg-btn sg-vot ${i===0?'sel':''}" onclick="selectGroup('vot','${g.id}',this)" style="border-color:${g.color}20">
-      <div class="sg-type" style="color:${g.color}">${g.emoji} VOT</div>
-      <div class="sg-words" style="color:${g.color}">${g.label}</div>
-      <div class="sg-badge">${g.pairs[0].p} vs ${g.pairs[0].b}</div>
-    </button>
-  `).join('');
+  const container = document.getElementById('sgVOT');
+  container.innerHTML = '';
 
-  document.getElementById('sgListen').innerHTML = LISTEN_GROUPS.map(g=>`
-    <button class="sg-btn sg-lis" onclick="selectGroup('listen','${g.id}',this)" style="border-color:${g.color}30">
-      <div class="sg-type" style="color:${g.color}">${g.emoji} 聽音</div>
+  SEGMENTS.forEach((seg,si) => {
+    // Segment header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = `grid-column:1/-1;margin:${si>0?'8px':0} 0 4px;font-size:11px;font-weight:900;color:${seg.color};display:flex;align-items:center;gap:6px`;
+    hdr.innerHTML = `<span>${seg.emoji}</span><span>${seg.label}</span><span style="font-size:9px;font-weight:700;color:#bbb;font-style:italic">${seg.desc}</span>`;
+    container.appendChild(hdr);
+
+    // VOT buttons for this segment
+    seg.votIds.forEach(id => {
+      const g = VOT_GROUPS.find(x=>x.id===id);
+      if(!g) return;
+      const btn = document.createElement('button');
+      btn.className = `sg-btn sg-vot${id==='pb'?' sel':''}`;
+      btn.style.borderColor = g.color+'30';
+      btn.onclick = () => { selectGroup('vot', id, btn); };
+      btn.innerHTML = `<div class="sg-type" style="color:${g.color}">🎤 發音</div>
+        <div class="sg-words" style="color:${g.color}">${g.label}</div>
+        <div class="sg-badge">${g.pairs[0].p} vs ${g.pairs[0].b}</div>`;
+      container.appendChild(btn);
+    });
+
+    // Listen buttons for this segment
+    seg.listenIds.forEach(id => {
+      if(id==='fv'||id==='th') return; // shown separately
+      const g = LISTEN_GROUPS.find(x=>x.id===id);
+      if(!g) return;
+      const btn = document.createElement('button');
+      btn.className = 'sg-btn sg-lis';
+      btn.style.borderColor = g.color+'30';
+      btn.onclick = () => { selectGroup('listen', id, btn); };
+      btn.innerHTML = `<div class="sg-type" style="color:${g.color}">👂 聽音</div>
+        <div class="sg-words" style="color:${g.color}">${g.label}</div>
+        <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>`;
+      container.appendChild(btn);
+    });
+  });
+
+  // Extra listen groups (f/v, th) under 齒音/唇齒音 header
+  const extraHdr = document.createElement('div');
+  extraHdr.style.cssText = 'grid-column:1/-1;margin:8px 0 4px;font-size:11px;font-weight:900;color:#AD1457;display:flex;align-items:center;gap:6px';
+  extraHdr.innerHTML = '🦋 唇齒音 / 齒音';
+  container.appendChild(extraHdr);
+  ['fv','th'].forEach(id => {
+    const g = LISTEN_GROUPS.find(x=>x.id===id);
+    if(!g) return;
+    const btn = document.createElement('button');
+    btn.className = 'sg-btn sg-lis';
+    btn.style.borderColor = g.color+'30';
+    btn.onclick = () => { selectGroup('listen', id, btn); };
+    btn.innerHTML = `<div class="sg-type" style="color:${g.color}">👂 聽音</div>
       <div class="sg-words" style="color:${g.color}">${g.label}</div>
-      <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>
-    </button>
-  `).join('');
+      <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>`;
+    container.appendChild(btn);
+  });
+
+  // Mixed challenge button
+  const mixHdr = document.createElement('div');
+  mixHdr.style.cssText = 'grid-column:1/-1;margin:8px 0 4px;font-size:11px;font-weight:900;color:#E65100;display:flex;align-items:center;gap:6px';
+  mixHdr.innerHTML = '🌈 混合挑戰';
+  container.appendChild(mixHdr);
+  const mixBtn = document.createElement('button');
+  mixBtn.className = 'sg-btn';
+  mixBtn.style.cssText = 'border-color:#E6510030;grid-column:1/-1;background:linear-gradient(135deg,#FFF3E0,#FFF9F0)';
+  mixBtn.onclick = () => { startMixedChallenge(mixBtn); };
+  mixBtn.innerHTML = `<div class="sg-type" style="color:#E65100">🌈 全部音組</div>
+    <div class="sg-words" style="color:#E65100">混合挑戰</div>
+    <div class="sg-badge">隨機出題，每題換音組</div>`;
+  container.appendChild(mixBtn);
+
+  // hide the old sgListen div (now unused)
+  const oldListen = document.getElementById('sgListen');
+  if(oldListen){ oldListen.style.display='none'; }
+  const listenLabel = document.querySelector('[style*="sgListen"]');
 }
 
 function selectGroup(mode, id, btn){
@@ -608,13 +810,96 @@ function selectGroup(mode, id, btn){
   }
 }
 
+// ════════════════════════════════════════════════
+// MIXED CHALLENGE
+// ════════════════════════════════════════════════
+let mixedQueue=[];
+let mixedIdx=0;
+
+function startMixedChallenge(btn){
+  document.querySelectorAll('.sg-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('fbBox').style.display='none';
+
+  // 固定順序：雙唇音 → 齒槽音 → 軟顎音 → 再循環
+  // 每個段落：先 VOT 發音，再聽音辨別（若有）
+  mixedQueue = [
+    // ① 雙唇音：字首 → 字尾
+    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='pb_i')},
+    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='pb_f')},
+    // ② 齒槽音
+    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='td')},
+    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='sz')},
+    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='shs')},
+    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='chj')},
+    // ③ 軟顎音：c/g → k/g
+    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='cg')},
+    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='kg')},
+    // ④ 唇齒 / 齒音（聽音）
+    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='fv')},
+    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='th')},
+  ].filter(q=>q.group);
+
+  mixedIdx=0;
+  nextMixed();
+}
+
+function nextMixed(){
+  if(mixedIdx>=mixedQueue.length) mixedIdx=0;
+  const q=mixedQueue[mixedIdx++];
+  if(q.mode==='vot'){
+    activeMode='vot';
+    activeGroup=q.group;
+    activePairIdx=Math.floor(Math.random()*q.group.pairs.length);
+    triedGroups.add(q.group.id);
+    updateTargetVOT();
+    document.getElementById('votMode').style.display='block';
+    document.getElementById('listenMode').style.display='none';
+    document.getElementById('sensorRow').style.display='grid';
+    document.getElementById('modeBadge').className='mode-badge mode-vot';
+    document.getElementById('modeBadge').textContent=`🎤 ${q.group.segLabel||'發音'} — ${q.group.label}`;
+    document.getElementById('modeBadge').style.display='inline-block';
+    setTL(null,'🎙️ 說字首音！');
+    resetSensors();
+  } else {
+    activeMode='listen';
+    activeGroup=q.group;
+    triedGroups.add(q.group.id);
+    newListenItem();
+    document.getElementById('votMode').style.display='none';
+    document.getElementById('listenMode').style.display='block';
+    document.getElementById('sensorRow').style.display='none';
+    document.getElementById('modeBadge').className='mode-badge mode-lis';
+    document.getElementById('modeBadge').textContent=`👂 ${q.group.segLabel||'聽音'} — ${q.group.label}`;
+    document.getElementById('modeBadge').style.display='inline-block';
+    setTL(null,'👂 聽聲音，選答案！');
+  }
+}
+
 function updateTargetVOT(){
   const pair=activeGroup.pairs[activePairIdx];
   document.getElementById('tgtEmoji').textContent=pair.em;
-  document.getElementById('tgtWord').textContent=pair.p;
+
+  // 如果是 c/k vs g 組，顯示 c= 標籤
+  const noteEl=document.getElementById('tgtNote');
+  if(pair.note && pair.note!=='k'){
+    document.getElementById('tgtWord').textContent=pair.p;
+    if(noteEl){
+      noteEl.textContent='💡 ' + pair.note + ' 音同 /k/';
+      noteEl.style.display='inline-block';
+    }
+  } else {
+    document.getElementById('tgtWord').textContent=pair.p;
+    if(noteEl) noteEl.style.display='none';
+  }
+
   document.getElementById('tgtIPA').textContent=pair.ipa;
   document.getElementById('tgtHint').textContent=activeGroup.hint;
-  document.getElementById('recWord').textContent=pair.p;
+  const initC=activeGroup.voiceless.toUpperCase();
+  document.getElementById('recWord').innerHTML=
+    `<span style="color:#FFD93D;font-size:1.2em">${initC}</span>${pair.p.slice(1)}`;
+  const hint=document.getElementById('initHint');
+  if(hint) hint.textContent=`${initC}…（${pair.p} 的第一個音）`;
 }
 
 // ════════════════════════════════════════════════
@@ -686,14 +971,21 @@ function checkListen(chosen){
   // Next item after delay
   setTimeout(()=>{
     document.querySelectorAll('.listen-choice').forEach(c=>c.className='listen-choice');
-    newListenItem();
-    setTL(null,'👂 聽聲音，選答案！');
+    // If in mixed challenge mode, go next mixed; otherwise stay in same group
+    const mixBtn=document.querySelector('.sg-btn.sel');
+    if(mixBtn && mixBtn.textContent.includes('混合')) nextMixed();
+    else { newListenItem(); setTL(null,'👂 聽聲音，選答案！'); }
   }, 1800);
 }
 
 // ════════════════════════════════════════════════
-// RECORDING (VOT mode)
+// RECORDING — 字首音模式
+// 只錄 1.2 秒，只分析最前面 600ms
+// 小朋友只要說出字首音（/p/ /t/ /k/）就好
+// 畫面顯示完整例字供參考
 // ════════════════════════════════════════════════
+let autoStopTimer=null;
+
 async function toggleRecord(){
   if(isRecording){stopRecord();return;}
   try{
@@ -706,16 +998,35 @@ async function toggleRecord(){
     mediaRecorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
     mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
+      clearTimeout(autoStopTimer);
       await analyzeVOT(new Blob(chunks,{type:'audio/webm'}));
     };
     mediaRecorder.start();
     isRecording=true;
+
     const btn=document.getElementById('recBtn');
     btn.classList.add('recording');
     btn.style.background='linear-gradient(135deg,#F44336,#FF7043)';
-    btn.innerHTML='⏹️ 停止錄音';
-    setTL(null,'🎙️ 錄音中…說清楚一點！');
+    btn.innerHTML='🔴 錄音中…';
+    setTL(null,'🎙️ 說字首音！');
     document.getElementById('simBtn').style.display='none';
+
+    // 倒數顯示
+    let t=3;
+    const countdown=document.getElementById('recCountdown');
+    countdown.textContent=`${t}秒後自動停止`;
+    countdown.style.display='block';
+    const cTimer=setInterval(()=>{
+      t--;
+      if(t>0) countdown.textContent=`${t}秒後自動停止`;
+      else { countdown.textContent='分析中…'; clearInterval(cTimer); }
+    },1000);
+
+    // 自動停止：1.2秒，只要字首音
+    autoStopTimer=setTimeout(()=>{
+      if(isRecording) stopRecord();
+    },1200);
+
   }catch(e){
     document.getElementById('micErr').style.display='block';
     document.getElementById('micErr').innerHTML='⚠️ 找不到麥克風。請允許瀏覽器使用麥克風，或點下方「模擬」試試。';
@@ -725,16 +1036,22 @@ async function toggleRecord(){
 
 function stopRecord(){
   if(!mediaRecorder||!isRecording)return;
+  clearTimeout(autoStopTimer);
   mediaRecorder.stop(); isRecording=false;
+  document.getElementById('recCountdown').style.display='none';
   const btn=document.getElementById('recBtn');
   btn.classList.remove('recording');
   btn.style.background='linear-gradient(135deg,var(--orange),var(--yellow))';
-  btn.innerHTML=`🎙️ 說「<span id="recWord">${activeGroup.pairs[activePairIdx].p}</span>」`;
+  const initC=activeGroup.voiceless.toUpperCase();
+  const word=activeGroup.pairs[activePairIdx].p;
+  btn.innerHTML=`🎙️ 說「<span style="color:#FFD93D;font-size:1.1em" id="recWord">${initC}</span>${word.slice(1)}」`;
   setTL(null,'⏳ 分析中…');
 }
 
 // ════════════════════════════════════════════════
-// VOT ANALYSIS — 超寬鬆版，環境音大也沒關係
+// VOT ANALYSIS — 字首音版
+// 只分析最前面 600ms（字首輔音）
+// 用動態背景噪音基準，教室環境音不影響
 // ════════════════════════════════════════════════
 async function analyzeVOT(blob){
   try{
@@ -744,34 +1061,47 @@ async function analyzeVOT(blob){
     const data=audio.getChannelData(0);
     const sr=audio.sampleRate;
 
-    // 15ms frame，更穩定
-    const fSize=Math.round(sr*0.015);
+    // 只取前 600ms，專注字首音，排除後面母音干擾
+    const maxSamples=Math.min(data.length, Math.round(sr*0.60));
+    const segment=data.slice(0,maxSamples);
+
+    // 10ms frame
+    const fSize=Math.round(sr*0.010);
     const energies=[];
-    for(let i=0;i<data.length-fSize;i+=fSize){
-      let s=0; for(let j=0;j<fSize;j++) s+=data[i+j]**2;
+    for(let i=0;i<segment.length-fSize;i+=fSize){
+      let s=0; for(let j=0;j<fSize;j++) s+=segment[i+j]**2;
       energies.push(Math.sqrt(s/fSize));
     }
 
-    // 排序取背景噪音：用40th percentile當背景，比中位數更寬鬆
+    if(energies.length<5){simVOT();return;}
+
+    // 動態背景噪音：用前20%能量當背景（錄音剛開始=靜音/環境音）
     const sorted=[...energies].sort((a,b)=>a-b);
-    const bgNoise=sorted[Math.floor(sorted.length*0.40)];
-    const peakE  =sorted[Math.floor(sorted.length*0.92)];
+    const bgNoise=sorted[Math.floor(sorted.length*0.20)]; // 更保守
+    const peakE  =sorted[Math.floor(sorted.length*0.90)];
 
-    // 閾值 = max(背景*2.5, peak*8%) — 環境音大時自動墊高基準
-    const thr=Math.max(bgNoise*2.5, peakE*0.08);
+    // 閾值：背景 * 3 或 peak * 6%，取較大值
+    // 環境音越大，基準自動越高，不會把雜音當爆破
+    const thr=Math.max(bgNoise*3.0, peakE*0.06, 0.001);
 
+    // 找爆破起點（burst）
     let burst=energies.findIndex(e=>e>thr);
     if(burst<0){simVOT();return;}
 
-    // 聲帶起振：爆破後第一個持續能量段
+    // 找聲帶起振（burst後第一個持續高能量）
+    // 用較寬鬆的條件：只要連續2幀超過閾值80%就算起振
     let voice=burst+1;
-    for(let i=burst+1;i<energies.length-3;i++){
-      if(energies[i]>thr*1.2&&energies[i+1]>thr&&energies[i+2]>thr*0.8){voice=i;break;}
+    for(let i=burst+1;i<energies.length-2;i++){
+      if(energies[i]>thr*1.1 && energies[i+1]>thr*0.8){
+        voice=i; break;
+      }
     }
 
-    // 每 frame=15ms
-    const votMs=Math.round((voice-burst)*15);
-    if(votMs<2||votMs>350){simVOT();return;}
+    // 每 frame=10ms
+    const votMs=Math.round((voice-burst)*10);
+
+    // 合理範圍：2–200ms（字首音不會超過200ms）
+    if(votMs<2||votMs>200){simVOT();return;}
     showVOTResult(votMs);
   }catch(e){simVOT();}
 }
@@ -787,6 +1117,10 @@ function simVOT(){
 
 // ════════════════════════════════════════════════
 // SHOW VOT RESULT
+// 三燈邏輯（鼓勵為主）：
+//   🟢 綠燈 = 有送氣（VOT >= minVOT）→ 加火格、加分
+//   🟡 黃燈 = 有發音但氣不夠（VOT 10–minVOT）→ 給建議，不扣分
+//   🔴 紅燈 = 完全沒聲音或太小聲（VOT < 10ms）→ 鼓勵再試
 // ════════════════════════════════════════════════
 function showVOTResult(vot){
   const g=activeGroup;
@@ -794,33 +1128,48 @@ function showVOTResult(vot){
   totalAttempts++;
   groupStats[g.id].attempts++;
 
-  const isCorrect = vot>=g.minVOT && vot<=g.maxVOT;
-  const isOverAsp = vot>g.maxVOT;
+  const hasAspiration  = vot >= g.minVOT && vot <= g.maxVOT; // 綠燈
+  const hasVoice       = vot >= 10 && vot < g.minVOT;         // 黃燈：有發音但送氣不足
+  const silent         = vot < 10;                             // 紅燈：幾乎沒聲音
 
-  if(isCorrect){
+  if(hasAspiration){
     diag='correct';
-    mainMsg='✅ 太棒了！送氣正確！';
-    fbText=`🎉 超讚！你的 /${g.voiceless}/ 送氣非常好！VOT ${vot}ms，完全正確！`;
+    mainMsg='✅ 綠燈！送氣好棒！';
+    fbText=`🎉 超讚！你的 /${g.voiceless}/ 送氣非常好！VOT ${vot}ms，完全正確！${g.articulatoryHint}`;
     fireCells=Math.min(fireCells+1,10);
     correctCount++; streak++; addScore(10);
     groupStats[g.id].correct++;
-    // Next pair
     activePairIdx=(activePairIdx+1)%g.pairs.length;
-    setTimeout(()=>updateTargetVOT(),1500);
-  } else if(isOverAsp){
+    setTimeout(()=>{
+      const mixBtn=document.querySelector('.sg-btn.sel');
+      if(mixBtn && mixBtn.textContent.includes('混合')) nextMixed();
+      else updateTargetVOT();
+    },1500);
+
+  } else if(hasVoice){
     diag='warn';
-    mainMsg='⚠️ 送氣再輕一點點！';
-    fbText=`VOT ${vot}ms 有點太長，送氣稍微過強。試著輕一點，讓 /${g.voiceless}/ 更自然！`;
+    mainMsg='🟡 黃燈！有發音，再多送一點氣！';
+    fbText=`很好！你有發音（VOT ${vot}ms），但氣流還不夠強。`
+      +`
+想像嘴前有一根蠟燭，說「${g.pairs[activePairIdx].p}」要把它吹熄！💨`
+      +`
+${g.articulatoryHint}`;
+    // 不扣火格，不扣分，鼓勵繼續
     streak=0;
+
   } else {
     diag='error';
-    mainMsg='❌ 再送更多氣！加油！';
-    fbText=`氣不夠強！VOT 只有 ${vot}ms。想像嘴前有蠟燭，說「${g.pairs[activePairIdx].p}」要把它吹熄！💨`;
-    fireCells=Math.max(fireCells-1,0);
+    mainMsg='🔴 紅燈！再大聲一點！';
+    fbText=`沒有偵測到聲音（VOT ${vot}ms），可能說太小聲了！`
+      +`
+深呼吸，靠近麥克風，大聲說「${g.pairs[activePairIdx].p}」！`
+      +`
+${g.articulatoryHint}`;
+    // 紅燈也不扣火格，純鼓勵
     streak=0;
   }
 
-  history.push({vot,correct:isCorrect,groupId:g.id});
+  history.push({vot,correct:hasAspiration,groupId:g.id});
   setTL(diag,mainMsg);
   updateFire();
   animateSensors(vot,g.minVOT);
