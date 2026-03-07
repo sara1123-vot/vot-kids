@@ -238,9 +238,10 @@ canvas#radarCanvas{display:block}
 
     <!-- VOT 模式 -->
     <div id="votMode">
-      <div style="background:#FFF3E0;border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#E65100;display:flex;align-items:center;gap:8px">
+      <div style="background:#FFF3E0;border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#E65100;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-size:20px">💡</span>
-        <span>說<strong>第一個音</strong>就好！「<strong id="initHint">P…</strong>」按停止後立刻亮燈！</span>
+        <span style="flex:1">說<strong>第一個音</strong>就好！「<strong id="initHint">P…</strong>」</span>
+        <button id="demoBtn" onclick="playDemo()" style="font-family:inherit;font-size:12px;font-weight:900;padding:6px 14px;border-radius:12px;border:none;background:linear-gradient(135deg,#1565C0,#42A5F5);color:white;cursor:pointer;flex-shrink:0">🔊 聽示範</button>
       </div>
       <!-- 開始按鈕 -->
       <button class="btn-rec" id="recStartBtn" onclick="startRecord()" style="background:linear-gradient(135deg,#43A047,#66BB6A);margin-bottom:8px">
@@ -1038,6 +1039,7 @@ function buildGroupSelectors(){
 function selectGroup(mode, id, btn){
   document.querySelectorAll('.sg-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
+  isMixedMode = false;
   document.getElementById('fbBox').style.display='none';
   setTL(null,'');
 
@@ -1075,64 +1077,81 @@ function selectGroup(mode, id, btn){
 // ════════════════════════════════════════════════
 let mixedQueue=[];
 let mixedIdx=0;
+let isMixedMode=false;
 
 function startMixedChallenge(btn){
   document.querySelectorAll('.sg-btn').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
   document.getElementById('fbBox').style.display='none';
+  isMixedMode = true;
 
-  // 固定順序：雙唇音 → 齒槽音 → 軟顎音 → 再循環
-  // 每個段落：先 VOT 發音，再聽音辨別（若有）
+  // Build ordered queue covering ALL groups, then repeat infinitely via mod
   mixedQueue = [
-    // ① 雙唇音：字首 → 字尾
-    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='pb_i')},
-    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='pb_f')},
+    // ① 雙唇音
+    {mode:'vot',    gid:'pb_i'},
+    {mode:'vot',    gid:'pb_f'},
     // ② 齒槽音
-    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='td')},
-    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='sz')},
-    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='shs')},
-    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='chj')},
-    // ③ 軟顎音：c/g → k/g
-    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='cg')},
-    {mode:'vot',    group: VOT_GROUPS.find(g=>g.id==='kg')},
-    // ④ 唇齒 / 齒音（聽音）
-    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='fv')},
-    {mode:'listen', group: LISTEN_GROUPS.find(g=>g.id==='th')},
-  ].filter(q=>q.group);
+    {mode:'vot',    gid:'td'},
+    {mode:'listen', gid:'sz'},
+    {mode:'listen', gid:'shs'},
+    {mode:'listen', gid:'chj'},
+    // ③ 軟顎音
+    {mode:'vot',    gid:'cg'},
+    {mode:'vot',    gid:'kg'},
+    // ④ 唇齒 / 齒音
+    {mode:'listen', gid:'fv'},
+    {mode:'listen', gid:'th'},
+  ].map(q=>({
+    mode: q.mode,
+    group: q.mode==='vot'
+      ? VOT_GROUPS.find(g=>g.id===q.gid)
+      : LISTEN_GROUPS.find(g=>g.id===q.gid)
+  })).filter(q=>q.group);
 
-  mixedIdx=0;
+  mixedIdx = 0;
   nextMixed();
 }
 
 function nextMixed(){
-  if(mixedIdx>=mixedQueue.length) mixedIdx=0;
-  const q=mixedQueue[mixedIdx++];
+  // Infinite loop through all groups
+  if(mixedIdx >= mixedQueue.length) mixedIdx = 0;
+  const q = mixedQueue[mixedIdx++];
+
+  // Update mode badge to show current segment
+  const segLabel = q.group.segLabel || '';
+  const groupLabel = q.group.label;
+
   if(q.mode==='vot'){
-    activeMode='vot';
-    activeGroup=q.group;
-    activePairIdx=Math.floor(Math.random()*q.group.pairs.length);
+    activeMode   = 'vot';
+    activeGroup  = q.group;
+    // Pick a DIFFERENT random pair each time
+    activePairIdx = Math.floor(Math.random() * q.group.pairs.length);
     triedGroups.add(q.group.id);
     updateTargetVOT();
     document.getElementById('votMode').style.display='block';
     document.getElementById('listenMode').style.display='none';
     document.getElementById('sensorRow').style.display='grid';
     document.getElementById('modeBadge').className='mode-badge mode-vot';
-    document.getElementById('modeBadge').textContent=`🎤 ${q.group.segLabel||'發音'} — ${q.group.label}`;
+    document.getElementById('modeBadge').textContent=`🎤 ${segLabel} ${groupLabel}`;
     document.getElementById('modeBadge').style.display='inline-block';
-    setTL(null,'🎙️ 說字首音！');
+    document.getElementById('fbBox').style.display='none';
+    setTL(null,'🎙️ 按「開始錄音」說字首音！');
     resetSensors();
   } else {
-    activeMode='listen';
-    activeGroup=q.group;
+    activeMode  = 'listen';
+    activeGroup = q.group;
     triedGroups.add(q.group.id);
     newListenItem();
+    // Auto-play the audio after a short delay so student hears it right away
+    setTimeout(()=>playListenAudio(), 500);
     document.getElementById('votMode').style.display='none';
     document.getElementById('listenMode').style.display='block';
     document.getElementById('sensorRow').style.display='none';
     document.getElementById('modeBadge').className='mode-badge mode-lis';
-    document.getElementById('modeBadge').textContent=`👂 ${q.group.segLabel||'聽音'} — ${q.group.label}`;
+    document.getElementById('modeBadge').textContent=`👂 ${segLabel} ${groupLabel}`;
     document.getElementById('modeBadge').style.display='inline-block';
-    setTL(null,'👂 聽聲音，選答案！');
+    document.getElementById('fbBox').style.display='none';
+    setTL(null,'👂 聽完選答案！');
   }
 }
 
@@ -1185,20 +1204,62 @@ function newListenItem(){
   document.getElementById('playBtn').textContent='🔊 播放聲音';
 }
 
-function playListenAudio(){
-  // Use Web Speech API to pronounce the word
-  if (!window.speechSynthesis) {
-    document.getElementById('fbBox').className='fb-box warn';
-    document.getElementById('fbBox').style.display='block';
-    document.getElementById('fbBox').textContent='⚠️ 這個瀏覽器不支援語音播放，請用 Safari 或 Chrome。';
-    return;
-  }
-  const word = listenAnswer==='word' ? listenItem.word : listenItem.alt;
-  const utt = new SpeechSynthesisUtterance(word);
-  utt.lang='en-US'; utt.rate=0.85; utt.pitch=1;
+// ════════════════════════════════
+// SPEECH — robust iOS/Android fix
+// ════════════════════════════════
+function speakWord(word, onDone){
+  if(!window.speechSynthesis){ alert('此瀏覽器不支援語音，請用 Safari。'); return; }
   window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utt);
-  document.getElementById('playBtn').textContent='🔊 再聽一次';
+
+  function doSpeak(){
+    const utt = new SpeechSynthesisUtterance(word);
+    utt.lang = 'en-US';
+    utt.rate = 0.82;
+    utt.pitch = 1.05;
+
+    // Pick best English voice
+    const voices = window.speechSynthesis.getVoices();
+    const enVoice = voices.find(v=>v.lang==='en-US' && v.localService)
+                 || voices.find(v=>v.lang.startsWith('en-US'))
+                 || voices.find(v=>v.lang.startsWith('en'));
+    if(enVoice) utt.voice = enVoice;
+
+    if(onDone) utt.onend = onDone;
+    window.speechSynthesis.speak(utt);
+  }
+
+  // iOS: voices may not be loaded yet — wait for voiceschanged
+  const voices = window.speechSynthesis.getVoices();
+  if(voices.length > 0){
+    doSpeak();
+  } else {
+    window.speechSynthesis.onvoiceschanged = ()=>{ doSpeak(); };
+    // Fallback if event never fires (some browsers)
+    setTimeout(doSpeak, 250);
+  }
+}
+
+// Listen mode: play the target word
+function playListenAudio(){
+  const word = listenAnswer==='word' ? listenItem.word : listenItem.alt;
+  const btn = document.getElementById('playBtn');
+  btn.disabled = true;
+  btn.textContent = '🔊 播放中…';
+  speakWord(word, ()=>{
+    btn.disabled = false;
+    btn.textContent = '🔊 再聽一次';
+  });
+}
+
+// VOT mode: play demo of target word so student hears correct pronunciation
+function playDemo(){
+  if(!activeGroup || activeMode!=='vot') return;
+  const word = activeGroup.pairs[activePairIdx].p;
+  const btn = document.getElementById('demoBtn');
+  if(btn){ btn.textContent='🔊 播放中…'; btn.disabled=true; }
+  speakWord(word, ()=>{
+    if(btn){ btn.textContent='🔊 聽示範'; btn.disabled=false; }
+  });
 }
 
 function checkListen(chosen){
@@ -1232,8 +1293,7 @@ function checkListen(chosen){
   setTimeout(()=>{
     document.querySelectorAll('.listen-choice').forEach(c=>c.className='listen-choice');
     // If in mixed challenge mode, go next mixed; otherwise stay in same group
-    const selBtn=document.querySelector('.sg-btn.sel');
-    if(selBtn && selBtn.textContent.includes('混合')) nextMixed();
+    if(isMixedMode) nextMixed();
     else { newListenItem(); setTL(null,'👂 聽聲音，選答案！'); }
   }, 1800);
 }
