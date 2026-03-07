@@ -240,12 +240,17 @@ canvas#radarCanvas{display:block}
     <div id="votMode">
       <div style="background:#FFF3E0;border-radius:14px;padding:10px 14px;margin-bottom:10px;font-size:12px;font-weight:700;color:#E65100;display:flex;align-items:center;gap:8px">
         <span style="font-size:20px">💡</span>
-        <span>只要說<strong>第一個音</strong>就好！說「<strong id="initHint">P…</strong>」停下來，1.2秒自動分析</span>
+        <span>說<strong>第一個音</strong>就好！「<strong id="initHint">P…</strong>」按停止後立刻亮燈！</span>
       </div>
-      <button class="btn-rec" id="recBtn" onclick="toggleRecord()">
-        🎙️ 說「<span id="recWord">Pig</span>」
+      <!-- 開始按鈕 -->
+      <button class="btn-rec" id="recStartBtn" onclick="startRecord()" style="background:linear-gradient(135deg,#43A047,#66BB6A);margin-bottom:8px">
+        🎙️ 開始錄音 — 說「<span id="recWord">Pig</span>」
       </button>
-      <div id="recCountdown" style="display:none;text-align:center;font-size:13px;font-weight:800;color:#F44336;margin-top:6px;animation:pulse 1s infinite"></div>
+      <!-- 停止按鈕（錄音中才顯示） -->
+      <button class="btn-rec" id="recStopBtn" onclick="stopRecord()" style="display:none;background:linear-gradient(135deg,#F44336,#FF7043);animation:pulse .8s infinite;margin-bottom:8px">
+        ⏹️ 停止錄音
+      </button>
+      <div id="recCountdown" style="display:none;text-align:center;font-size:13px;font-weight:800;color:#F44336;margin-top:2px;margin-bottom:6px;animation:pulse 1s infinite"></div>
       <button class="btn-sim" id="simBtn" onclick="simVOT()">🎲 模擬發音（測試用）</button>
       <div class="mic-error" id="micErr"></div>
     </div>
@@ -650,10 +655,30 @@ const SEGMENTS = [
     listenIds:[],
   },
   {
+    id:'labiodental',
+    label:'唇齒音',
+    emoji:'🦋',
+    desc:'f vs v — 上牙咬下唇',
+    color:'#AD1457',
+    colorL:'#FCE4EC',
+    votIds:[],
+    listenIds:['fv'],
+  },
+  {
+    id:'dental',
+    label:'齒音',
+    emoji:'👅',
+    desc:'th(θ) vs th(ð) — 舌咬牙',
+    color:'#6A1B9A',
+    colorL:'#F3E5F5',
+    votIds:[],
+    listenIds:['th'],
+  },
+  {
     id:'mixed',
     label:'混合挑戰',
     emoji:'🌈',
-    desc:'全部音組隨機出題',
+    desc:'全部音組，固定順序出題',
     color:'#E65100',
     colorL:'#FFF3E0',
     votIds:['pb_i','pb_f','td','cg','kg'],
@@ -694,65 +719,300 @@ function switchTab(i,btn){
 }
 
 // ════════════════════════════════════════════════
-// BUILD GROUP SELECTORS — 四段式
+// WAVEFORM MINI CHARTS
+// 每個音組按鈕上的小聲波示意圖
+// type: 'aspirated'  = 清音送氣（爆破後長VOT）
+//       'voiced'     = 濁音（立即振動）
+//       'fricative-v'= 濁摩擦音（持續振動波）
+//       'fricative-u'= 清摩擦音（高頻雜訊）
+//       'final-p'    = 字尾清音（短尾氣）
+//       'final-b'    = 字尾濁音（振動收尾）
+// ════════════════════════════════════════════════
+// ════════════════════════════════════════════════
+// WAVEFORM MINI CHARTS
+// 兩條波形並排：清音（藍/紫）＋ 濁音（綠/粉）
+// 讓小朋友直觀比較送氣時間與聲帶振動
+// ════════════════════════════════════════════════
+
+// Seeded pseudo-random for deterministic noise
+function seededRand(seed){
+  let s=seed;
+  return ()=>{ s=(s*1664525+1013904223)&0xffffffff; return (s>>>0)/0xffffffff; };
+}
+
+function drawWaveMini(canvas, type, seed=42){
+  const W=canvas.width, H=canvas.height;
+  const ctx=canvas.getContext('2d');
+  const rand=seededRand(seed);
+  ctx.clearRect(0,0,W,H);
+
+  // background gradient
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0d1117'); bg.addColorStop(1,'#141b24');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // subtle grid lines
+  ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=.5;
+  [H*.25,H*.5,H*.75].forEach(y=>{
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+  });
+
+  const mid=H/2;
+
+  if(type==='aspirated'){
+    // VOICELESS STOP: silence | burst | aspiration noise | voicing
+    const bx=W*0.20, vx=W*0.55;
+    const pts=[];
+    for(let x=0;x<W;x++){
+      let y;
+      if(x<bx-1)       y = mid + (rand()-.5)*3;
+      else if(x<bx+5)  y = mid - 20*Math.sin((x-bx)/(5)*Math.PI);
+      else if(x<vx)    y = mid + (rand()-.5)*11*(0.6+0.4*Math.sin((x-bx)*0.3));
+      else              y = mid - 16*Math.sin((x-vx)*0.26)*Math.exp(-(x-vx)*0.003);
+      pts.push([x,y]);
+    }
+    // glow pass
+    ctx.save(); ctx.filter='blur(2px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(0,212,255,.35)'; ctx.lineWidth=3;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    ctx.restore();
+    // crisp pass
+    ctx.beginPath(); ctx.strokeStyle='#00d4ff'; ctx.lineWidth=1.8;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    // VOT bracket
+    ctx.strokeStyle='rgba(255,211,61,.8)'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(bx,4); ctx.lineTo(bx,H-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(vx,4); ctx.lineTo(vx,H-2); ctx.stroke();
+    ctx.setLineDash([]);
+    // arrow
+    ctx.fillStyle='rgba(255,211,61,.9)'; ctx.font='bold 7px monospace';
+    ctx.fillText('←VOT→',bx+2,9);
+    // area fill
+    ctx.beginPath();
+    ctx.moveTo(bx,mid); pts.slice(Math.floor(bx),Math.floor(vx)).forEach(([x,y])=>ctx.lineTo(x,y)); ctx.lineTo(vx,mid);
+    ctx.fillStyle='rgba(255,211,61,.07)'; ctx.fill();
+
+  } else if(type==='voiced'){
+    // VOICED STOP: near-silence | tiny burst | immediate voicing
+    const bx=W*0.18, vx=W*0.26;
+    const pts=[];
+    for(let x=0;x<W;x++){
+      let y;
+      if(x<bx)        y = mid + (rand()-.5)*3;
+      else if(x<vx)   y = mid - 10*Math.sin((x-bx)/(vx-bx)*Math.PI);
+      else             y = mid - 16*Math.sin((x-vx)*0.27)*Math.exp(-(x-vx)*0.004)*(0.7+0.3*Math.sin((x-vx)*0.15));
+      pts.push([x,y]);
+    }
+    ctx.save(); ctx.filter='blur(2px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(76,175,80,.35)'; ctx.lineWidth=3;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.strokeStyle='#4CAF50'; ctx.lineWidth=1.8;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    ctx.strokeStyle='rgba(255,211,61,.7)'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(bx,4); ctx.lineTo(bx,H-2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(vx,4); ctx.lineTo(vx,H-2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,211,61,.85)'; ctx.font='bold 7px monospace';
+    ctx.fillText('短VOT',bx+1,9);
+
+  } else if(type==='fricative-u'){
+    // VOICELESS FRICATIVE: sustained high-freq noise
+    const pts=[];
+    for(let x=0;x<W;x++){
+      const env=x<W*.08||x>W*.92?0:Math.min(1,(x-.08*W)/(.1*W))*Math.min(1,(.92*W-x)/(.1*W));
+      const y=mid+(rand()-.5)*14*env;
+      pts.push([x,y]);
+    }
+    ctx.save(); ctx.filter='blur(1.5px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(144,202,249,.3)'; ctx.lineWidth=2.5;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.strokeStyle='#90CAF9'; ctx.lineWidth=1.4;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    // label
+    ctx.fillStyle='rgba(144,202,249,.8)'; ctx.font='bold 7px monospace';
+    ctx.fillText('無振動',2,9);
+
+  } else if(type==='fricative-v'){
+    // VOICED FRICATIVE: noise + sinusoidal voicing underneath
+    const pts=[];
+    for(let x=0;x<W;x++){
+      const env=x<W*.08||x>W*.92?0.05:1;
+      const voice=10*Math.sin(x*0.22+0.5);
+      const noise=(rand()-.5)*9;
+      const y=mid-env*(voice*.55+noise*.5);
+      pts.push([x,y]);
+    }
+    ctx.save(); ctx.filter='blur(1.5px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(244,143,177,.3)'; ctx.lineWidth=2.5;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.strokeStyle='#F48FB1'; ctx.lineWidth=1.4;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    ctx.fillStyle='rgba(244,143,177,.85)'; ctx.font='bold 7px monospace';
+    ctx.fillText('有振動',2,9);
+
+  } else if(type==='final-p'){
+    // WORD-FINAL /p/: vowel wave → closure silence → tiny burst
+    const clo=W*0.58, rel=W*0.80;
+    const pts=[];
+    for(let x=0;x<W;x++){
+      let y;
+      if(x<clo)        y=mid-14*Math.sin(x*0.23)*(0.5+0.5*Math.sin(x*0.08));
+      else if(x<rel)   y=mid+(rand()-.5)*2;
+      else             y=mid-9*Math.exp(-(x-rel)*0.12)*Math.sin((x-rel)*1.1);
+      pts.push([x,y]);
+    }
+    ctx.save(); ctx.filter='blur(1.5px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(206,147,216,.3)'; ctx.lineWidth=2.5;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.strokeStyle='#CE93D8'; ctx.lineWidth=1.8;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    ctx.strokeStyle='rgba(255,211,61,.7)'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(clo,4); ctx.lineTo(clo,H-2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='bold 7px monospace';
+    ctx.fillText('閉合',clo+2,9);
+
+  } else if(type==='final-b'){
+    // WORD-FINAL /b/: vowel → voiced closure (buzzing) → stop
+    const clo=W*0.56;
+    const pts=[];
+    for(let x=0;x<W;x++){
+      let y;
+      if(x<clo) y=mid-14*Math.sin(x*0.23)*(0.5+0.5*Math.sin(x*0.08));
+      else {
+        const fade=1-((x-clo)/(W-clo));
+        y=mid-5*Math.sin(x*0.42)*fade;
+      }
+      pts.push([x,y]);
+    }
+    ctx.save(); ctx.filter='blur(1.5px)';
+    ctx.beginPath(); ctx.strokeStyle='rgba(165,214,167,.3)'; ctx.lineWidth=2.5;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke(); ctx.restore();
+    ctx.beginPath(); ctx.strokeStyle='#A5D6A7'; ctx.lineWidth=1.8;
+    pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.stroke();
+    ctx.strokeStyle='rgba(255,211,61,.7)'; ctx.lineWidth=1; ctx.setLineDash([2,2]);
+    ctx.beginPath(); ctx.moveTo(clo,4); ctx.lineTo(clo,H-2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='rgba(255,255,255,.6)'; ctx.font='bold 7px monospace';
+    ctx.fillText('振動',clo+2,9);
+  }
+}
+
+// Map group id → {voiceless type, voiced type, label pair}
+const WAVE_MAP = {
+  'pb_i': {u:'aspirated',   v:'voiced',     uLbl:'/p/ 清音',   vLbl:'/b/ 濁音',  uColor:'#00d4ff', vColor:'#4CAF50'},
+  'pb_f': {u:'final-p',     v:'final-b',    uLbl:'/p/ 字尾',   vLbl:'/b/ 字尾',  uColor:'#CE93D8', vColor:'#A5D6A7'},
+  'td':   {u:'aspirated',   v:'voiced',     uLbl:'/t/ 清音',   vLbl:'/d/ 濁音',  uColor:'#00d4ff', vColor:'#4CAF50'},
+  'cg':   {u:'aspirated',   v:'voiced',     uLbl:'/k/ 清音',   vLbl:'/g/ 濁音',  uColor:'#00d4ff', vColor:'#4CAF50'},
+  'kg':   {u:'aspirated',   v:'voiced',     uLbl:'/k/ 清音',   vLbl:'/g/ 濁音',  uColor:'#00d4ff', vColor:'#4CAF50'},
+  'sz':   {u:'fricative-u', v:'fricative-v',uLbl:'/s/ 無振動', vLbl:'/z/ 有振動',uColor:'#90CAF9', vColor:'#F48FB1'},
+  'shs':  {u:'fricative-u', v:'fricative-v',uLbl:'/ʃ/ 無振動', vLbl:'/ʒ/ 有振動',uColor:'#90CAF9', vColor:'#F48FB1'},
+  'chj':  {u:'aspirated',   v:'voiced',     uLbl:'/tʃ/ 清音',  vLbl:'/dʒ/ 濁音', uColor:'#00d4ff', vColor:'#4CAF50'},
+  'fv':   {u:'fricative-u', v:'fricative-v',uLbl:'/f/ 無振動', vLbl:'/v/ 有振動',uColor:'#90CAF9', vColor:'#F48FB1'},
+  'th':   {u:'fricative-u', v:'fricative-v',uLbl:'/θ/ 無振動', vLbl:'/ð/ 有振動',uColor:'#90CAF9', vColor:'#F48FB1'},
+};
+
+// Build a standalone waveform comparison panel (not inside button)
+// Returns a <div> ready to append; canvases drawn on next rAF
+function makeMiniWave(groupId, seed){
+  const map=WAVE_MAP[groupId];
+  if(!map) return null;
+  const s=seed||Math.floor(Math.random()*9999);
+
+  const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:5px;margin-top:7px;width:100%';
+
+  ['u','v'].forEach((side,si)=>{
+    const col=document.createElement('div');
+    col.style.cssText='flex:1;display:flex;flex-direction:column;align-items:center;gap:2px';
+
+    const lbl=document.createElement('div');
+    lbl.style.cssText=`font-size:9px;font-weight:900;font-family:'JetBrains Mono',monospace;color:${map[side+'Color']};letter-spacing:.3px;text-align:center`;
+    lbl.textContent=map[side+'Lbl'];
+
+    const cv=document.createElement('canvas');
+    cv.width=160; cv.height=44;
+    cv.style.cssText='border-radius:7px;width:100%;display:block;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+
+    col.appendChild(lbl);
+    col.appendChild(cv);
+    wrap.appendChild(col);
+
+    // draw deterministically so it looks the same each time
+    requestAnimationFrame(()=>drawWaveMini(cv, map[side], s+si*1000));
+  });
+  return wrap;
+}
+
+// ════════════════════════════════════════════════
+// BUILD GROUP SELECTORS — 四段式 + 聲波圖
 // ════════════════════════════════════════════════
 function buildGroupSelectors(){
   const container = document.getElementById('sgVOT');
   container.innerHTML = '';
 
-  SEGMENTS.forEach((seg,si) => {
-    // Segment header
+  // Helper: build one group button (VOT or listen) with waveform
+  function makeGroupBtn(mode, g, isFirst){
+    const isVOT = mode==='vot';
+    const btn = document.createElement('button');
+    btn.className = `sg-btn ${isVOT?'sg-vot':'sg-lis'}${isFirst?' sel':''}`;
+    btn.style.borderColor = g.color+'40';
+
+    // text header
+    const type = document.createElement('div');
+    type.className = 'sg-type';
+    type.style.color = g.color;
+    type.textContent = isVOT ? '🎤 發音分析' : '👂 聽音辨別';
+
+    const words = document.createElement('div');
+    words.className = 'sg-words';
+    words.style.color = g.color;
+    words.textContent = g.label;
+
+    const badge = document.createElement('div');
+    badge.className = 'sg-badge';
+    badge.textContent = isVOT
+      ? `${g.pairs[0].p} vs ${g.pairs[0].b}`
+      : `${g.items[0].word} vs ${g.items[0].alt}`;
+
+    btn.appendChild(type);
+    btn.appendChild(words);
+    btn.appendChild(badge);
+
+    // waveform chart
+    const wave = makeMiniWave(g.id);
+    if(wave) btn.appendChild(wave);
+
+    btn.onclick = () => selectGroup(mode, g.id, btn);
+    return btn;
+  }
+
+  let firstVOT = true;
+
+  SEGMENTS.forEach((seg, si) => {
+    if(seg.id==='mixed') return; // mixed added separately below
+
+    // segment header
     const hdr = document.createElement('div');
-    hdr.style.cssText = `grid-column:1/-1;margin:${si>0?'8px':0} 0 4px;font-size:11px;font-weight:900;color:${seg.color};display:flex;align-items:center;gap:6px`;
-    hdr.innerHTML = `<span>${seg.emoji}</span><span>${seg.label}</span><span style="font-size:9px;font-weight:700;color:#bbb;font-style:italic">${seg.desc}</span>`;
+    hdr.style.cssText = `grid-column:1/-1;margin:${si>0?'10px':0} 0 5px;font-size:11px;font-weight:900;color:${seg.color};display:flex;align-items:center;gap:6px`;
+    hdr.innerHTML = `<span style="font-size:15px">${seg.emoji}</span><span>${seg.label}</span><span style="font-size:9px;font-weight:700;color:#bbb;font-style:italic;margin-left:2px">${seg.desc}</span>`;
     container.appendChild(hdr);
 
-    // VOT buttons for this segment
+    // VOT buttons
     seg.votIds.forEach(id => {
       const g = VOT_GROUPS.find(x=>x.id===id);
       if(!g) return;
-      const btn = document.createElement('button');
-      btn.className = `sg-btn sg-vot${id==='pb'?' sel':''}`;
-      btn.style.borderColor = g.color+'30';
-      btn.onclick = () => { selectGroup('vot', id, btn); };
-      btn.innerHTML = `<div class="sg-type" style="color:${g.color}">🎤 發音</div>
-        <div class="sg-words" style="color:${g.color}">${g.label}</div>
-        <div class="sg-badge">${g.pairs[0].p} vs ${g.pairs[0].b}</div>`;
+      const btn = makeGroupBtn('vot', g, firstVOT);
+      firstVOT = false;
       container.appendChild(btn);
     });
 
-    // Listen buttons for this segment
+    // Listen buttons
     seg.listenIds.forEach(id => {
-      if(id==='fv'||id==='th') return; // shown separately
       const g = LISTEN_GROUPS.find(x=>x.id===id);
       if(!g) return;
-      const btn = document.createElement('button');
-      btn.className = 'sg-btn sg-lis';
-      btn.style.borderColor = g.color+'30';
-      btn.onclick = () => { selectGroup('listen', id, btn); };
-      btn.innerHTML = `<div class="sg-type" style="color:${g.color}">👂 聽音</div>
-        <div class="sg-words" style="color:${g.color}">${g.label}</div>
-        <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>`;
-      container.appendChild(btn);
+      container.appendChild(makeGroupBtn('listen', g, false));
     });
-  });
-
-  // Extra listen groups (f/v, th) under 齒音/唇齒音 header
-  const extraHdr = document.createElement('div');
-  extraHdr.style.cssText = 'grid-column:1/-1;margin:8px 0 4px;font-size:11px;font-weight:900;color:#AD1457;display:flex;align-items:center;gap:6px';
-  extraHdr.innerHTML = '🦋 唇齒音 / 齒音';
-  container.appendChild(extraHdr);
-  ['fv','th'].forEach(id => {
-    const g = LISTEN_GROUPS.find(x=>x.id===id);
-    if(!g) return;
-    const btn = document.createElement('button');
-    btn.className = 'sg-btn sg-lis';
-    btn.style.borderColor = g.color+'30';
-    btn.onclick = () => { selectGroup('listen', id, btn); };
-    btn.innerHTML = `<div class="sg-type" style="color:${g.color}">👂 聽音</div>
-      <div class="sg-words" style="color:${g.color}">${g.label}</div>
-      <div class="sg-badge">${g.items[0].word} vs ${g.items[0].alt}</div>`;
-    container.appendChild(btn);
   });
 
   // Mixed challenge button
@@ -972,22 +1232,18 @@ function checkListen(chosen){
   setTimeout(()=>{
     document.querySelectorAll('.listen-choice').forEach(c=>c.className='listen-choice');
     // If in mixed challenge mode, go next mixed; otherwise stay in same group
-    const mixBtn=document.querySelector('.sg-btn.sel');
-    if(mixBtn && mixBtn.textContent.includes('混合')) nextMixed();
+    const selBtn=document.querySelector('.sg-btn.sel');
+    if(selBtn && selBtn.textContent.includes('混合')) nextMixed();
     else { newListenItem(); setTL(null,'👂 聽聲音，選答案！'); }
   }, 1800);
 }
 
 // ════════════════════════════════════════════════
-// RECORDING — 字首音模式
-// 只錄 1.2 秒，只分析最前面 600ms
-// 小朋友只要說出字首音（/p/ /t/ /k/）就好
-// 畫面顯示完整例字供參考
+// RECORDING — 手動按鍵模式
+// 按一下「開始錄音」→ 說字首音 → 按「停止」→ 立刻亮燈
 // ════════════════════════════════════════════════
-let autoStopTimer=null;
 
-async function toggleRecord(){
-  if(isRecording){stopRecord();return;}
+async function startRecord(){
   try{
     document.getElementById('micErr').style.display='none';
     const stream=await navigator.mediaDevices.getUserMedia({
@@ -998,54 +1254,34 @@ async function toggleRecord(){
     mediaRecorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
     mediaRecorder.onstop=async()=>{
       stream.getTracks().forEach(t=>t.stop());
-      clearTimeout(autoStopTimer);
+      // 立刻亮等待燈，告訴小朋友在分析
+      setTL('wait','⏳ 分析中，請稍等…');
       await analyzeVOT(new Blob(chunks,{type:'audio/webm'}));
     };
     mediaRecorder.start();
     isRecording=true;
 
-    const btn=document.getElementById('recBtn');
-    btn.classList.add('recording');
-    btn.style.background='linear-gradient(135deg,#F44336,#FF7043)';
-    btn.innerHTML='🔴 錄音中…';
-    setTL(null,'🎙️ 說字首音！');
+    // UI: 開始按鈕消失，停止按鈕出現
+    document.getElementById('recStartBtn').style.display='none';
+    document.getElementById('recStopBtn').style.display='block';
+    document.getElementById('recCountdown').style.display='block';
+    document.getElementById('recCountdown').textContent='🔴 錄音中，說完按停止！';
     document.getElementById('simBtn').style.display='none';
-
-    // 倒數顯示
-    let t=3;
-    const countdown=document.getElementById('recCountdown');
-    countdown.textContent=`${t}秒後自動停止`;
-    countdown.style.display='block';
-    const cTimer=setInterval(()=>{
-      t--;
-      if(t>0) countdown.textContent=`${t}秒後自動停止`;
-      else { countdown.textContent='分析中…'; clearInterval(cTimer); }
-    },1000);
-
-    // 自動停止：1.2秒，只要字首音
-    autoStopTimer=setTimeout(()=>{
-      if(isRecording) stopRecord();
-    },1200);
+    setTL(null,'🎙️ 說字首音！說完按停止！');
 
   }catch(e){
     document.getElementById('micErr').style.display='block';
-    document.getElementById('micErr').innerHTML='⚠️ 找不到麥克風。請允許瀏覽器使用麥克風，或點下方「模擬」試試。';
+    document.getElementById('micErr').innerHTML='⚠️ 找不到麥克風。請允許存取麥克風，或點下方「模擬」試試。';
     document.getElementById('simBtn').style.display='block';
   }
 }
 
 function stopRecord(){
   if(!mediaRecorder||!isRecording)return;
-  clearTimeout(autoStopTimer);
   mediaRecorder.stop(); isRecording=false;
+  document.getElementById('recStartBtn').style.display='block';
+  document.getElementById('recStopBtn').style.display='none';
   document.getElementById('recCountdown').style.display='none';
-  const btn=document.getElementById('recBtn');
-  btn.classList.remove('recording');
-  btn.style.background='linear-gradient(135deg,var(--orange),var(--yellow))';
-  const initC=activeGroup.voiceless.toUpperCase();
-  const word=activeGroup.pairs[activePairIdx].p;
-  btn.innerHTML=`🎙️ 說「<span style="color:#FFD93D;font-size:1.1em" id="recWord">${initC}</span>${word.slice(1)}」`;
-  setTL(null,'⏳ 分析中…');
 }
 
 // ════════════════════════════════════════════════
@@ -1141,8 +1377,8 @@ function showVOTResult(vot){
     groupStats[g.id].correct++;
     activePairIdx=(activePairIdx+1)%g.pairs.length;
     setTimeout(()=>{
-      const mixBtn=document.querySelector('.sg-btn.sel');
-      if(mixBtn && mixBtn.textContent.includes('混合')) nextMixed();
+      const selBtn=document.querySelector('.sg-btn.sel');
+      if(selBtn && selBtn.textContent.includes('混合')) nextMixed();
       else updateTargetVOT();
     },1500);
 
@@ -1183,7 +1419,7 @@ ${g.articulatoryHint}`;
 // ════════════════════════════════════════════════
 function setTL(diag,msg){
   document.getElementById('tlR').classList.toggle('on',diag==='error');
-  document.getElementById('tlY').classList.toggle('on',diag==='warn');
+  document.getElementById('tlY').classList.toggle('on',diag==='warn'||diag==='wait');
   document.getElementById('tlG').classList.toggle('on',diag==='correct');
   document.getElementById('tlMsg').textContent=msg||(
     diag==='correct'?'✅ 太棒了！':diag==='warn'?'⚠️ 再試一次！':diag==='error'?'❌ 加油！':''
@@ -1448,8 +1684,14 @@ window.addEventListener('load',()=>{
   buildFireTrack();
   // Pre-select first VOT group
   selectGroup('vot','pb',document.querySelector('.sg-vot'));
+  // Show sim button if no mic
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     document.getElementById('simBtn').style.display='block';
+  }
+  // Pre-select first group properly after DOM is built
+  const firstVotBtn = document.querySelector('.sg-btn.sg-vot.sel');
+  if(firstVotBtn){
+    selectGroup('vot','pb_i',firstVotBtn);
   }
 });
 </script>
